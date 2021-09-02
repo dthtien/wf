@@ -5,6 +5,7 @@ require "active_record"
 require "logger"
 require 'redis'
 require 'byebug'
+require 'json'
 require_relative "lib/workers.rb"
 require_relative './lib/wf/workflow'
 
@@ -18,5 +19,5 @@ class TestWf < Wf::Workflow
   end
 end
 
-wf = TestWf.new
+wf = TestWf.create
 wf.start!

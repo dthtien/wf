@@ -1,24 +1,43 @@
-require 'redis'
+require_relative 'client'
 
 module Wf
   class Workflow
-    attr_reader :dependencies, :jobs
+    attr_reader :dependencies, :jobs, :started_at, :finished_at, :persisted, :stopped
+
+    class << self
+      def create
+        flow = new
+        flow.save
+        flow
+      end
+    end
 
     def initialize
       @dependencies = []
       @id = id
       @jobs = []
+      @persisted = false
+      @stopped = false
 
       setup
     end
 
     def start!
       initial_jobs.each do |job|
-        Thread.new do
-          job.enqueue!
-          job.perform
-        end.join
+        job.enqueue!
+        job.perform
       end
+    end
+
+    def save
+      client.persist_workflow(self)
+      jobs.each(&:persist!)
+      mark_as_persisted
+      true
+    end
+
+    def id
+      @id ||= client.build_workflow_id
     end
 
     def configure; end
@@ -26,38 +45,86 @@ module Wf
     def run(klass, options = {})
       node = klass.new(
         workflow_id: id,
-        id: job_id(id, klass.to_s),
+        id: client.build_job_id(id, klass.to_s),
         params: options.fetch(:params, {}),
         queue: options[:queue],
-        workflow: self
       )
 
       jobs << node
 
-      deps_after = [*options[:after]]
-
-      deps_after.each do |dep|
-        @dependencies << { from: dep.to_s, to: node.name.to_s }
-      end
-
-      deps_before = [*options[:before]]
-
-      deps_before.each do |dep|
-        @dependencies << { from: node.name.to_s, to: dep.to_s }
-      end
-
+      build_dependencies_structure(node, options)
       node.name
     end
 
     def find_job(name)
-      if /(?<klass>\w*[^-])-(?<identifier>.*)/.match(name.to_s)
-        job = jobs.find { |node| node.name.to_s == name.to_s }
-      else
+      match_data = /(?<klass>\w*[^-])-(?<identifier>.*)/.match(name.to_s)
+
+      if match_data.nil?
         job = jobs.find { |node| node.klass.to_s == name.to_s }
+      else
+        job = jobs.find { |node| node.name.to_s == name.to_s }
       end
 
       job
     end
+
+    def to_hash
+      name = self.class.to_s
+      {
+        name: name,
+        id: id,
+        arguments: @arguments,
+        total: jobs.count,
+        finished: jobs.count(&:finished?),
+        klass: name,
+        status: status,
+        stopped: stopped,
+        started_at: started_at,
+        finished_at: finished_at
+      }
+    end
+
+    def as_json
+      to_hash.to_json
+    end
+
+    def finished?
+      jobs.all?(&:finished?)
+    end
+
+    def started?
+      !!started_at
+    end
+
+    def running?
+      started? && !finished?
+    end
+
+    def failed?
+      jobs.any?(&:failed?)
+    end
+
+    def stopped?
+      stopped
+    end
+
+    def status
+      return :failed if failed?
+      return :running if running?
+      return :finished if finished?
+      return :stopped if stopped?
+
+      :running
+    end
+
+    def mark_as_persisted
+      @persisted = true
+    end
+
+    def mark_as_started
+      @stopped = false
+    end
+
 
     private
 
@@ -80,39 +147,22 @@ module Wf
       end
     end
 
-    def job_id(workflow_id, job_klass)
-      jid = nil
+    def build_dependencies_structure(node, options)
+      deps_after = [*options[:after]]
 
-      loop do
-        jid = SecureRandom.uuid
-        available = !redis.hexists(
-          "wf.jobs.#{workflow_id}.#{job_klass}",
-          jid
-        )
-
-        break if available
+      deps_after.each do |dep|
+        @dependencies << { from: dep.to_s, to: node.name.to_s }
       end
 
-      jid
+      deps_before = [*options[:before]]
+
+      deps_before.each do |dep|
+        @dependencies << { from: node.name.to_s, to: dep.to_s }
+      end
     end
 
-    def id
-      @id ||=
-        begin
-          wid = nil
-          loop do
-            wid = SecureRandom.uuid
-            available = !redis.exists?("wf.workflow.#{wid}")
-
-            break if available
-          end
-
-          wid
-        end
-    end
-
-    def redis
-      @redis ||= Redis.new
+    def client
+      @client ||= Wf::Client.new
     end
   end
 end

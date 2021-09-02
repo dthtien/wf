@@ -1,28 +1,37 @@
+require_relative 'client'
+
 module Wf
   class Item
-    attr_reader :workflow_id, :id, :params, :queue, :klass, :workflow, :started_at,
+    attr_reader :workflow_id, :id, :params, :queue, :klass, :started_at,
       :enqueued_at, :finished_at, :failed_at
     attr_accessor :incomming, :outgoing
 
-    def initialize(workflow_id:, id:, params: {}, queue: 'wf', klass: self.class, workflow: )
-      @workflow_id = workflow_id
-      @id = id
-      @params = params
-      @queue = queue
-      @incomming = []
-      @outgoing = []
-      @klass = klass
-      @workflow = workflow
+    def initialize(options = {})
+      @workflow_id = options[:workflow_id]
+      @id = options[:id]
+      @params = options[:params]
+      @queue = options[:queue]
+      @incomming = options[:incoming] || []
+      @outgoing = options[:outgoing] || []
+      @klass = options[:klass] || self.class
+      @finished_at = options[:finished_at]
+      @enqueued_at = options[:enqueued_at]
+      @started_at = options[:started_at]
+    end
+
+    def self.from_hash(hash)
+      hash[:klass].constantize.new(hash)
     end
 
     def perform
       return enqueue_outgoing_jobs if succeeded?
 
+      mark_as_started
       puts "sleeping #{self.class.name}"
       sleep 2
       puts "Wake up #{self.class.name}"
 
-      finish!
+      mark_as_finished
       enqueue_outgoing_jobs
     end
 
@@ -35,8 +44,8 @@ module Wf
     end
 
     def parents_succeeded?
-      incomming.none? do |name|
-        !workflow.find_job(name).succeeded?
+      incomming.all? do |name|
+        client.find_job(workflow_id, name).succeeded?
       end
     end
 
@@ -44,6 +53,21 @@ module Wf
       @enqueued_at = current_timestamp
       @started_at = nil
       @finished_at = nil
+      @failed_at = nil
+    end
+
+    def mark_as_started
+      start!
+      persist!
+    end
+
+    def mark_as_finished
+      finish!
+      persist!
+    end
+
+    def start!
+      @started_at = current_timestamp
       @failed_at = nil
     end
 
@@ -90,16 +114,61 @@ module Wf
     def enqueue_outgoing_jobs
       jdata = outgoing.map do |job_name|
         Thread.new do
-          out = workflow.find_job(job_name)
-
+          check_or_lock(job_name)
+          out = client.find_job(workflow_id, job_name)
           if out.ready_to_start?
             out.enqueue!
             out.perform
           end
+          release_lock(job_name)
         end
       end
 
       jdata.each(&:join)
+    end
+
+    def check_or_lock(job_name)
+      key = "gush_enqueue_outgoing_jobs_#{workflow_id}-#{job_name}"
+
+      if client.key_exists?(key)
+        sleep 2
+      else
+        client.set(key, 'running')
+      end
+    end
+
+    def release_lock(job_name)
+      client.delete("gush_enqueue_outgoing_jobs_#{workflow_id}-#{job_name}")
+    end
+
+    def to_hash
+      {
+        id: id,
+        klass: klass.to_s,
+        queue: queue,
+        incoming: incomming,
+        outgoing: outgoing,
+        finished_at: finished_at,
+        enqueued_at: enqueued_at,
+        started_at: started_at,
+        failed_at: failed_at,
+        params: params,
+        workflow_id: workflow_id
+      }
+    end
+
+    def as_json
+      to_hash.to_json
+    end
+
+    def persist!
+      client.persist_job(self)
+    end
+
+    private
+
+    def client
+      @client ||= Wf::Client.new
     end
   end
 end
