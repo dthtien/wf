@@ -21,7 +21,7 @@ class C < E; end
 class D < E; end
 ```
 
-## Delare flow
+## Declare flow
 ```ruby
 class TestWf < Wf::Workflow
   def configure
