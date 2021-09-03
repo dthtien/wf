@@ -10,9 +10,9 @@ require_relative './wf/item'
 
 class A < Wf::Item
   def perform
-    puts "#{self.class.name} Sleeping"
+    puts "#{self.class.name} Working"
     sleep 2
-    puts "#{self.class.name} Wake up"
+    puts "#{self.class.name} Finished"
   end
 end
 
@@ -44,16 +44,16 @@ wf.start!
 
 ### Output
 ```
-sleeping A
-Wake up A
-sleeping B
-sleeping C
-Wake up B
-Wake up C
-sleeping E
-Wake up E
-sleeping D
-Wake up D
+A Working
+A Finished
+B Working
+C Working
+B Finished
+C Finished
+E Working
+E Finished
+D Working
+D Finished
 ```
 
 # References

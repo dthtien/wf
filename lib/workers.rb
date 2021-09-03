@@ -7,9 +7,9 @@ require_relative './wf/item'
 
 class A < Wf::Item
   def perform
-    puts "#{self.class.name} Sleeping"
+    puts "#{self.class.name} Working"
     sleep 2
-    puts "#{self.class.name} Wake up"
+    puts "#{self.class.name} Finished"
   end
 end
 
