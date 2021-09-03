@@ -18,4 +18,5 @@ end
 class B < A; end
 class C < E; end
 class D < E; end
+class F < E; end
 

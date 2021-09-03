@@ -24,11 +24,7 @@ module Wf
     end
 
     def start!
-      initial_jobs.each do |job|
-        job.enqueue!
-        job.persist!
-        job.perform_async
-      end
+      initial_jobs.each(&:persist_and_perform_async!)
     end
 
     def save

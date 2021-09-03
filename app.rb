@@ -16,6 +16,7 @@ class TestWf < Wf::Workflow
     run C, after: A
     run E, after: [B, C]
     run D, after: [E]
+    run F
   end
 end
 

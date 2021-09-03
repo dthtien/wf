@@ -23,6 +23,12 @@ module Wf
       hash[:klass].constantize.new(hash)
     end
 
+    def persist_and_perform_async!
+      enqueue!
+      persist!
+      perform_async
+    end
+
     def perform; end
 
     def perform_async
@@ -106,14 +112,10 @@ module Wf
     end
 
     def enqueue_outgoing_jobs
-      jdata = outgoing.map do |job_name|
+      outgoing.each do |job_name|
         check_or_lock(job_name)
         out = client.find_job(workflow_id, job_name)
-        if out.ready_to_start?
-          out.enqueue!
-          out.persist!
-          out.perform_async
-        end
+        out.persist_and_perform_async! if out.ready_to_start?
         release_lock(job_name)
       end
     end
