@@ -1,4 +1,5 @@
 require_relative 'client'
+require_relative 'worker'
 
 module Wf
   class Workflow
@@ -25,7 +26,8 @@ module Wf
     def start!
       initial_jobs.each do |job|
         job.enqueue!
-        job.perform
+        job.persist!
+        job.perform_async
       end
     end
 

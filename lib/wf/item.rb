@@ -10,7 +10,7 @@ module Wf
       @workflow_id = options[:workflow_id]
       @id = options[:id]
       @params = options[:params]
-      @queue = options[:queue]
+      @queue = options[:queue] || 'wf'
       @incomming = options[:incoming] || []
       @outgoing = options[:outgoing] || []
       @klass = options[:klass] || self.class
@@ -23,16 +23,10 @@ module Wf
       hash[:klass].constantize.new(hash)
     end
 
-    def perform
-      return enqueue_outgoing_jobs if succeeded?
+    def perform; end
 
-      mark_as_started
-      puts "sleeping #{self.class.name}"
-      sleep 2
-      puts "Wake up #{self.class.name}"
-
-      mark_as_finished
-      enqueue_outgoing_jobs
+    def perform_async
+      Wf::Worker.set(queue: queue).perform_async(workflow_id, name)
     end
 
     def name
@@ -113,18 +107,15 @@ module Wf
 
     def enqueue_outgoing_jobs
       jdata = outgoing.map do |job_name|
-        Thread.new do
-          check_or_lock(job_name)
-          out = client.find_job(workflow_id, job_name)
-          if out.ready_to_start?
-            out.enqueue!
-            out.perform
-          end
-          release_lock(job_name)
+        check_or_lock(job_name)
+        out = client.find_job(workflow_id, job_name)
+        if out.ready_to_start?
+          out.enqueue!
+          out.persist!
+          out.perform_async
         end
+        release_lock(job_name)
       end
-
-      jdata.each(&:join)
     end
 
     def check_or_lock(job_name)
