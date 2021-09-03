@@ -5,7 +5,13 @@ require "logger"
 require 'sidekiq-pro'
 require_relative './wf/item'
 
-class A < Wf::Item; end
+class A < Wf::Item
+  def perform
+    puts "#{self.class.name} Sleeping"
+    sleep 2
+    puts "#{self.class.name} Wake up"
+  end
+end
 
 class E < A
 end

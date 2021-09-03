@@ -1,5 +1,6 @@
 # DSL playground
-for research DSL purpose
+Gush cloner without ActiveJob but requried Sidekiq
+This project is for researching DSL purpose
 
 # Execute flow
 ## Declare jobs
@@ -7,10 +8,15 @@ for research DSL purpose
 ```ruby
 require_relative './wf/item'
 
-class A < Wf::Item; end
-
-class E < A
+class A < Wf::Item
+  def perform
+    puts "#{self.class.name} Sleeping"
+    sleep 2
+    puts "#{self.class.name} Wake up"
+  end
 end
+
+class E < A; end
 class B < A; end
 class C < E; end
 class D < E; end
@@ -32,7 +38,7 @@ end
 
 ### Execute flow
 ```ruby
-wf = TestWf.new
+wf = TestWf.create
 wf.start!
 ```
 
@@ -49,3 +55,7 @@ Wake up E
 sleeping D
 Wake up D
 ```
+
+# References
+- https://github.com/chaps-io/gush
+- https://github.com/mperham/sidekiq
