@@ -1,6 +1,5 @@
 # DSL playground
-Gush cloner without ActiveJob but requried Sidekiq
-This project is for researching DSL purpose
+Gush cloner without ActiveJob but requried Sidekiq. This project is for researching DSL purpose
 
 # Execute flow
 ## Declare jobs
