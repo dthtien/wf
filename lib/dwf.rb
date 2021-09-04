@@ -4,7 +4,6 @@ require "bundler/setup"
 require 'sidekiq'
 require 'sidekiq-pro'
 require 'json'
-require 'byebug'
 require 'redis'
 
 require_relative 'dwf/utils'
