@@ -3,7 +3,7 @@
 
 # Installation
 ```ruby
-gem 'dwf', '~> 0.1.1'
+gem 'dwf', '~> 0.1.2'
 ```
 # Execute flow
 ## Declare jobs

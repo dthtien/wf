@@ -2,7 +2,6 @@
 require "bundler/setup"
 
 require 'sidekiq'
-require 'sidekiq-pro'
 require 'json'
 require 'redis'
 
