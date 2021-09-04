@@ -11,7 +11,7 @@ module Wf
       return nil if data.nil?
 
       data = JSON.parse(data)
-      Wf::Item.from_hash(data.symbolize_keys)
+      Wf::Item.from_hash(Wf::Utils.symbolize_keys(data))
     end
 
     def persist_job(job)

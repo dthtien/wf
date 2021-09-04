@@ -20,7 +20,7 @@ module Wf
     end
 
     def self.from_hash(hash)
-      hash[:klass].constantize.new(hash)
+      Module.const_get(hash[:klass]).new(hash)
     end
 
     def persist_and_perform_async!
