@@ -7,7 +7,7 @@ class Workflow
   end
 
   def configure
-    run A
+    run A, process_condition: { B.name => "B#condtion", C.name => "C.condtion" }
     run B, after: A
     run C, after: A
     run E, after: A
