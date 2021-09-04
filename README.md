@@ -36,10 +36,6 @@ class TestWf < Dwf::Workflow
     run F, params: 'F say hello'
   end
 end
-
-wf = TestWf.create
-wf.start!
-
 ```
 
 #### Note
