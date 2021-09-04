@@ -3,7 +3,7 @@ require_relative 'client'
 module Dwf
   class Item
     attr_reader :workflow_id, :id, :params, :queue, :klass, :started_at,
-      :enqueued_at, :finished_at, :failed_at
+      :enqueued_at, :finished_at, :failed_at, :callback_type
     attr_accessor :incomming, :outgoing
 
     def initialize(options = {})
@@ -17,6 +17,7 @@ module Dwf
       @finished_at = options[:finished_at]
       @enqueued_at = options[:enqueued_at]
       @started_at = options[:started_at]
+      @callback_type = options[:callback_type]
     end
 
     def self.from_hash(hash)
@@ -30,6 +31,10 @@ module Dwf
     end
 
     def perform; end
+
+    def cb_build_in?
+      callback_type == Dwf::Workflow::BUILD_IN
+    end
 
     def perform_async
       Dwf::Worker.set(queue: queue).perform_async(workflow_id, name)
@@ -132,7 +137,8 @@ module Dwf
         started_at: started_at,
         failed_at: failed_at,
         params: params,
-        workflow_id: workflow_id
+        workflow_id: workflow_id,
+        callback_type: callback_type
       }
     end
 

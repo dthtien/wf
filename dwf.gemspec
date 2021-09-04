@@ -6,7 +6,7 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 
 Gem::Specification.new do |spec|
   spec.name          = "dwf"
-  spec.version       = '0.1.2'
+  spec.version       = '0.1.3'
   spec.authors       = ["dthtien"]
   spec.email         = ["tiendt2311@gmail.com"]
 

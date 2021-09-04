@@ -1,32 +1,40 @@
+# frozen_string_literal: true
+
 require_relative 'client'
 require_relative 'worker'
 require_relative 'callback'
 
 module Dwf
   class Workflow
-    attr_reader :dependencies, :jobs, :started_at, :finished_at, :persisted, :stopped
+    CALLBACK_TYPES = [
+      BUILD_IN = 'build-in',
+      SK_BATCH = 'sk-batch'
+    ].freeze
+    attr_reader :dependencies, :jobs, :started_at, :finished_at, :persisted, :stopped,
+                :callback_type
 
     class << self
-      def create
-        flow = new
+      def create(*args)
+        flow = new(*args)
         flow.save
         flow
       end
     end
 
-    def initialize
+    def initialize(options = {})
       @dependencies = []
       @id = id
       @jobs = []
       @persisted = false
       @stopped = false
+      @callback_type = options[:callback_type] || BUILD_IN
 
       setup
     end
 
     def start!
       initial_jobs.each do |job|
-        Dwf::Callback.new.start(job)
+        cb_build_in? ? job.persist_and_perform_async! : Dwf::Callback.new.start(job)
       end
     end
 
@@ -35,6 +43,10 @@ module Dwf
       jobs.each(&:persist!)
       mark_as_persisted
       true
+    end
+
+    def cb_build_in?
+      callback_type == BUILD_IN
     end
 
     def id
@@ -48,7 +60,8 @@ module Dwf
         workflow_id: id,
         id: client.build_job_id(id, klass.to_s),
         params: options.fetch(:params, {}),
-        queue: options[:queue]
+        queue: options[:queue],
+        callback_type: callback_type
       )
 
       jobs << node
@@ -81,7 +94,8 @@ module Dwf
         status: status,
         stopped: stopped,
         started_at: started_at,
-        finished_at: finished_at
+        finished_at: finished_at,
+        callback_type: callback_type
       }
     end
 
