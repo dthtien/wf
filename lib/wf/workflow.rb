@@ -24,25 +24,26 @@ module Wf
     end
 
     def process_next_step(status, options)
-      previous_job_name = options['name']
+      previous_job_names = options['names']
       workflow_id = options['workflow_id']
-      previous_job = client.find_job(workflow_id, previous_job_name)
+      processing_job_names = previous_job_names.map do |job_name|
+        job = client.find_job(workflow_id, job_name)
+        job.outgoing
+      end.flatten.uniq
 
       overall = Sidekiq::Batch.new(status.parent_bid)
       overall.jobs do
-        previous_job.outgoing.each do |job_name|
-          with_lock workflow_id, job_name do
+        batch = Sidekiq::Batch.new
+        batch.on(
+          :success,
+          'Wf::Workflow#process_next_step',
+          names: processing_job_names,
+          workflow_id: workflow_id
+        )
+        batch.jobs do
+          processing_job_names.each do |job_name|
             job = client.find_job(workflow_id, job_name)
-            batch = Sidekiq::Batch.new
-            batch.on(
-              :success,
-              'Wf::Workflow#process_next_step',
-              name: job.name,
-              workflow_id: workflow_id
-            )
-            batch.jobs do
-              job.persist_and_perform_async! if job.ready_to_start?
-            end
+            job.persist_and_perform_async! if job.ready_to_start?
           end
         end
       end
@@ -60,12 +61,10 @@ module Wf
         batch.on(
           :success,
           'Wf::Workflow#process_next_step',
-          name: job.name,
+          names: [job.name],
           workflow_id: id
         )
-        batch.jobs do
-          job.perform_async
-        end
+        batch.jobs { job.perform_async }
       end
     end
 
