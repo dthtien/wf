@@ -1,5 +1,5 @@
 # DSL playground
-Gush cloner without ActiveJob but requried Sidekiq. This project is for researching DSL purpose
+[Gush](https://github.com/chaps-io/gush) cloned without [ActiveJob](https://guides.rubyonrails.org/active_job_basics.html) but requried [Sidekiq](https://github.com/mperham/sidekiq). This project is for researching DSL purpose
 
 # Execute flow
 ## Declare jobs
