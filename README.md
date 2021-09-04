@@ -2,11 +2,12 @@
 [Gush](https://github.com/chaps-io/gush) cloned without [ActiveJob](https://guides.rubyonrails.org/active_job_basics.html) but requried [Sidekiq](https://github.com/mperham/sidekiq). This project is for researching DSL purpose
 
 # Installation
+## 1. Add `dwf` to Gemfile
 ```ruby
 gem 'dwf', '~> 0.1.2'
 ```
-# Execute flow
-## Declare jobs
+## 2. Execute flow
+### Declare jobs
 
 ```ruby
 require 'dwf'
@@ -21,7 +22,7 @@ class A < Dwf::Item
 end
 ```
 
-## Declare flow
+### Declare flow
 ```ruby
 require 'dwf'
 
@@ -40,6 +41,13 @@ wf = TestWf.create
 wf.start!
 
 ```
+
+#### Note
+`dwf` supports 2 type of callback `Dwf::Workflow::BUILD_IN` and `Dwf::Workflow::SK_BATCH`
+- `Dwf::Workflow::BUILD_IN` is a build-in callback
+- `Dwf::Workflow::SK_BATCH` is [sidekiq batch](https://github.com/mperham/sidekiq/wiki/Batches) callback which required [`sidekiq-pro`](https://sidekiq.org/products/pro.html)
+
+By default `dwf` will use `Dwf::Workflow::BUILD_IN` callback.
 
 ### Execute flow
 ```ruby
@@ -69,7 +77,7 @@ D Finished
 # Todo
 - [x] Make it work
 - [x] Support pass params
-- [ ] Support with build-in callback
+- [x] Support with build-in callback
 - [ ] Test
 - [ ] Add github workflow
 - [ ] Transfer output through each node
