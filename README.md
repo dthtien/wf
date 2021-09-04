@@ -1,13 +1,17 @@
 # DSL playground
 [Gush](https://github.com/chaps-io/gush) cloned without [ActiveJob](https://guides.rubyonrails.org/active_job_basics.html) but requried [Sidekiq](https://github.com/mperham/sidekiq). This project is for researching DSL purpose
 
+# Installation
+```ruby
+gem 'dwf', '~> 0.1.1'
+```
 # Execute flow
 ## Declare jobs
 
 ```ruby
-require_relative './wf/item'
+require 'dwf'
 
-class A < Wf::Item
+class A < Dwf::Item
   def perform
     puts "#{self.class.name} Working"
     sleep 2
@@ -23,7 +27,9 @@ class D < E; end
 
 ## Declare flow
 ```ruby
-class TestWf < Wf::Workflow
+require 'dwf'
+
+class TestWf < Dwf::Workflow
   def configure
     run A
     run B, after: A
