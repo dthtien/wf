@@ -15,14 +15,10 @@ class A < Dwf::Item
   def perform
     puts "#{self.class.name} Working"
     sleep 2
+    puts params
     puts "#{self.class.name} Finished"
   end
 end
-
-class E < A; end
-class B < A; end
-class C < E; end
-class D < E; end
 ```
 
 ## Declare flow
@@ -34,10 +30,14 @@ class TestWf < Dwf::Workflow
     run A
     run B, after: A
     run C, after: A
-    run E, after: [B, C]
-    run D, after: [E]
+    run E, after: [B, C], params: 'E say hello'
+    run D, after: [E], params: 'D say hello'
+    run F, params: 'F say hello'
   end
 end
+
+wf = TestWf.create
+wf.start!
 
 ```
 
@@ -50,23 +50,29 @@ wf.start!
 ### Output
 ```
 A Working
+F Working
 A Finished
-B Working
+F say hello
+F Finished
 C Working
-B Finished
+B Working
 C Finished
+B Finished
 E Working
+E say hello
 E Finished
 D Working
+D say hello
 D Finished
 ```
 
 # Todo
 - [x] Make it work
+- [x] Support pass params
 - [ ] Support with build-in callback
 - [ ] Test
-- [ ] Support pass params
 - [ ] Add github workflow
+- [ ] Transfer output through each node
 
 # References
 - https://github.com/chaps-io/gush

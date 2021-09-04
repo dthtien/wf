@@ -48,7 +48,7 @@ module Dwf
         workflow_id: id,
         id: client.build_job_id(id, klass.to_s),
         params: options.fetch(:params, {}),
-        queue: options[:queue],
+        queue: options[:queue]
       )
 
       jobs << node
