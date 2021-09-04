@@ -1,7 +1,7 @@
 require 'sidekiq-pro'
 require_relative 'client'
 
-module Wf
+module Dwf
   class Callback
     def process_next_step(status, options)
       previous_job_names = options['names']
@@ -26,7 +26,7 @@ module Wf
       batch = Sidekiq::Batch.new
       batch.on(
         :success,
-        'Wf::Callback#process_next_step',
+        'Dwf::Callback#process_next_step',
         names: processing_job_names,
         workflow_id: workflow_id
       )
@@ -53,7 +53,7 @@ module Wf
       batch = Sidekiq::Batch.new
       batch.on(
         :success,
-        'Wf::Callback#process_next_step',
+        'Dwf::Callback#process_next_step',
         names: [job.name],
         workflow_id: job.workflow_id
       )
@@ -61,7 +61,7 @@ module Wf
     end
 
     def client
-      @client ||= Wf::Client.new
+      @client ||= Dwf::Client.new
     end
   end
 end

@@ -1,4 +1,4 @@
-module Wf
+module Dwf
   class Client
     def find_job(workflow_id, job_name)
       job_name_match = /(?<klass>\w*[^-])-(?<identifier>.*)/.match(job_name)
@@ -11,11 +11,11 @@ module Wf
       return nil if data.nil?
 
       data = JSON.parse(data)
-      Wf::Item.from_hash(Wf::Utils.symbolize_keys(data))
+      Dwf::Item.from_hash(Dwf::Utils.symbolize_keys(data))
     end
 
     def persist_job(job)
-      redis.hset("wf.jobs.#{job.workflow_id}.#{job.klass}", job.id, job.as_json)
+      redis.hset("dwf.jobs.#{job.workflow_id}.#{job.klass}", job.id, job.as_json)
     end
 
     def check_or_lock(workflow_id, job_name)
@@ -29,11 +29,11 @@ module Wf
     end
 
     def release_lock(workflow_id, job_name)
-      delete("wf_enqueue_outgoing_jobs_#{workflow_id}-#{job_name}")
+      delete("dwf_enqueue_outgoing_jobs_#{workflow_id}-#{job_name}")
     end
 
     def persist_workflow(workflow)
-      redis.set("wf.workflows.#{workflow.id}", workflow.as_json)
+      redis.set("dwf.workflows.#{workflow.id}", workflow.as_json)
     end
 
     def build_job_id(workflow_id, job_klass)
@@ -42,7 +42,7 @@ module Wf
       loop do
         jid = SecureRandom.uuid
         available = !redis.hexists(
-          "wf.jobs.#{workflow_id}.#{job_klass}",
+          "dwf.jobs.#{workflow_id}.#{job_klass}",
           jid
         )
 
@@ -56,7 +56,7 @@ module Wf
       wid = nil
       loop do
         wid = SecureRandom.uuid
-        available = !redis.exists?("wf.workflow.#{wid}")
+        available = !redis.exists?("dwf.workflow.#{wid}")
 
         break if available
       end
@@ -81,11 +81,11 @@ module Wf
     def find_job_by_klass_and_id(workflow_id, job_name)
       job_klass, job_id = job_name.split('|')
 
-      redis.hget("wf.jobs.#{workflow_id}.#{job_klass}", job_id)
+      redis.hget("dwf.jobs.#{workflow_id}.#{job_klass}", job_id)
     end
 
     def find_job_by_klass(workflow_id, job_name)
-      _new_cursor, result = redis.hscan("wf.jobs.#{workflow_id}.#{job_name}", 0, count: 1)
+      _new_cursor, result = redis.hscan("dwf.jobs.#{workflow_id}.#{job_name}", 0, count: 1)
       return nil if result.empty?
 
       _job_id, job = *result[0]

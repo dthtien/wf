@@ -1,4 +1,4 @@
-module Wf
+module Dwf
   module Utils
     def self.symbolize_keys(obj)
       case obj

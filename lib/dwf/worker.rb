@@ -1,7 +1,7 @@
 require 'sidekiq'
 require_relative 'client'
 
-module Wf
+module Dwf
   class Worker
     include Sidekiq::Worker
 
@@ -18,7 +18,7 @@ module Wf
     private
 
     def client
-      @client ||= Wf::Client.new
+      @client ||= Dwf::Client.new
     end
   end
 end

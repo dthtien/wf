@@ -2,7 +2,7 @@ require_relative 'client'
 require_relative 'worker'
 require_relative 'callback'
 
-module Wf
+module Dwf
   class Workflow
     attr_reader :dependencies, :jobs, :started_at, :finished_at, :persisted, :stopped
 
@@ -26,7 +26,7 @@ module Wf
 
     def start!
       initial_jobs.each do |job|
-        Wf::Callback.new.start(job)
+        Dwf::Callback.new.start(job)
       end
     end
 
@@ -163,7 +163,7 @@ module Wf
     end
 
     def client
-      @client ||= Wf::Client.new
+      @client ||= Dwf::Client.new
     end
   end
 end

@@ -1,6 +1,6 @@
 require_relative 'client'
 
-module Wf
+module Dwf
   class Item
     attr_reader :workflow_id, :id, :params, :queue, :klass, :started_at,
       :enqueued_at, :finished_at, :failed_at
@@ -10,7 +10,7 @@ module Wf
       @workflow_id = options[:workflow_id]
       @id = options[:id]
       @params = options[:params]
-      @queue = options[:queue] || 'wf'
+      @queue = options[:queue] || 'default'
       @incomming = options[:incoming] || []
       @outgoing = options[:outgoing] || []
       @klass = options[:klass] || self.class
@@ -32,7 +32,7 @@ module Wf
     def perform; end
 
     def perform_async
-      Wf::Worker.set(queue: queue).perform_async(workflow_id, name)
+      Dwf::Worker.set(queue: queue).perform_async(workflow_id, name)
     end
 
     def name
@@ -147,7 +147,7 @@ module Wf
     private
 
     def client
-      @client ||= Wf::Client.new
+      @client ||= Dwf::Client.new
     end
   end
 end
