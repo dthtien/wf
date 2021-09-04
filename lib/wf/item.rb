@@ -113,25 +113,11 @@ module Wf
 
     def enqueue_outgoing_jobs
       outgoing.each do |job_name|
-        check_or_lock(job_name)
+        client.check_or_lock(workflow_id, job_name)
         out = client.find_job(workflow_id, job_name)
         out.persist_and_perform_async! if out.ready_to_start?
-        release_lock(job_name)
+        client.release_lock(workflow_id, job_name)
       end
-    end
-
-    def check_or_lock(job_name)
-      key = "gush_enqueue_outgoing_jobs_#{workflow_id}-#{job_name}"
-
-      if client.key_exists?(key)
-        sleep 2
-      else
-        client.set(key, 'running')
-      end
-    end
-
-    def release_lock(job_name)
-      client.delete("gush_enqueue_outgoing_jobs_#{workflow_id}-#{job_name}")
     end
 
     def to_hash

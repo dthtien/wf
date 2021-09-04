@@ -18,6 +18,20 @@ module Wf
       redis.hset("wf.jobs.#{job.workflow_id}.#{job.klass}", job.id, job.as_json)
     end
 
+    def check_or_lock(workflow_id, job_name)
+      key = "wf_enqueue_outgoing_jobs_#{workflow_id}-#{job_name}"
+
+      if key_exists?(key)
+        sleep 2
+      else
+        set(key, 'running')
+      end
+    end
+
+    def release_lock(workflow_id, job_name)
+      delete("wf_enqueue_outgoing_jobs_#{workflow_id}-#{job_name}")
+    end
+
     def persist_workflow(workflow)
       redis.set("wf.workflows.#{workflow.id}", workflow.as_json)
     end
