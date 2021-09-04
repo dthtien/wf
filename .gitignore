@@ -1,6 +1,6 @@
 .byebug_history
 tmp/
 Gemfile.lock
-wf-*.gem
+dwf-*.gem
 :w
 :W
