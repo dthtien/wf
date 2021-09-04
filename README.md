@@ -61,6 +61,12 @@ D Working
 D Finished
 ```
 
+# Todo
+- [x] Make it work
+- [ ] Support with build-in callback
+- [ ] Test
+- [ ] Support pass params
+
 # References
 - https://github.com/chaps-io/gush
 - https://github.com/mperham/sidekiq
