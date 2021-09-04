@@ -4,7 +4,7 @@
 # Installation
 ## 1. Add `dwf` to Gemfile
 ```ruby
-gem 'dwf', '~> 0.1.2'
+gem 'dwf', '~> 0.1.3'
 ```
 ## 2. Execute flow
 ### Declare jobs
