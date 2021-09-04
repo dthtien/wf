@@ -66,6 +66,7 @@ D Finished
 - [ ] Support with build-in callback
 - [ ] Test
 - [ ] Support pass params
+- [ ] Add github workflow
 
 # References
 - https://github.com/chaps-io/gush
