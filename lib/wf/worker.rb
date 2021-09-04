@@ -12,7 +12,7 @@ module Wf
       job.mark_as_started
       job.perform
       job.mark_as_finished
-      job.enqueue_outgoing_jobs
+      # job.enqueue_outgoing_jobs
     end
 
     private

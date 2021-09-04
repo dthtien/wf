@@ -23,8 +23,50 @@ module Wf
       setup
     end
 
+    def process_next_step(status, options)
+      previous_job_name = options['name']
+      workflow_id = options['workflow_id']
+      previous_job = client.find_job(workflow_id, previous_job_name)
+
+      overall = Sidekiq::Batch.new(status.parent_bid)
+      overall.jobs do
+        previous_job.outgoing.each do |job_name|
+          with_lock workflow_id, job_name do
+            job = client.find_job(workflow_id, job_name)
+            batch = Sidekiq::Batch.new
+            batch.on(
+              :success,
+              'Wf::Workflow#process_next_step',
+              name: job.name,
+              workflow_id: workflow_id
+            )
+            batch.jobs do
+              job.persist_and_perform_async! if job.ready_to_start?
+            end
+          end
+        end
+      end
+    end
+
+    def with_lock(workflow_id, job_name)
+      client.check_or_lock(workflow_id, job_name)
+      yield
+      client.release_lock(workflow_id, job_name)
+    end
+
     def start!
-      initial_jobs.each(&:persist_and_perform_async!)
+      initial_jobs.each do |job|
+        batch = Sidekiq::Batch.new
+        batch.on(
+          :success,
+          'Wf::Workflow#process_next_step',
+          name: job.name,
+          workflow_id: id
+        )
+        batch.jobs do
+          job.perform_async
+        end
+      end
     end
 
     def save
