@@ -4,7 +4,7 @@ describe Dwf::Utils, utils: true do
   describe '#symbolize_keys' do
     let(:expected) do
       {
-        incomming: ['S'],
+        incoming: ['S'],
         outgoing: %w[A B],
         klass: 'H'
       }
@@ -12,7 +12,7 @@ describe Dwf::Utils, utils: true do
 
     let(:hash) do
       {
-        'incomming' => ['S'],
+        'incoming' => ['S'],
         'outgoing' => %w[A B],
         'klass' => 'H'
       }

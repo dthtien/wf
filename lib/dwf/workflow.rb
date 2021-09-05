@@ -157,7 +157,7 @@ module Dwf
         from = find_job(dependency[:from])
         to   = find_job(dependency[:to])
 
-        to.incomming << dependency[:from]
+        to.incoming << dependency[:from]
         from.outgoing << dependency[:to]
       end
     end

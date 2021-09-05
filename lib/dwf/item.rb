@@ -1,17 +1,19 @@
 require_relative 'client'
+# frozen_string_literal: true
 
 module Dwf
   class Item
+    DEFAULT_QUEUE = 'default'
     attr_reader :workflow_id, :id, :params, :queue, :klass, :started_at,
       :enqueued_at, :finished_at, :failed_at, :callback_type
-    attr_accessor :incomming, :outgoing
+    attr_accessor :incoming, :outgoing
 
     def initialize(options = {})
       @workflow_id = options[:workflow_id]
       @id = options[:id]
       @params = options[:params]
       @queue = options[:queue] || 'default'
-      @incomming = options[:incoming] || []
+      @incoming = options[:incoming] || []
       @outgoing = options[:outgoing] || []
       @klass = options[:klass] || self.class
       @finished_at = options[:finished_at]
@@ -45,11 +47,11 @@ module Dwf
     end
 
     def no_dependencies?
-      incomming.empty?
+      incoming.empty?
     end
 
     def parents_succeeded?
-      incomming.all? do |name|
+      incoming.all? do |name|
         client.find_job(workflow_id, name).succeeded?
       end
     end
@@ -130,7 +132,7 @@ module Dwf
         id: id,
         klass: klass.to_s,
         queue: queue,
-        incoming: incomming,
+        incoming: incoming,
         outgoing: outgoing,
         finished_at: finished_at,
         enqueued_at: enqueued_at,
