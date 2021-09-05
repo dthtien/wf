@@ -4,6 +4,7 @@ require "bundler/setup"
 require 'sidekiq'
 require 'json'
 require 'redis'
+# require 'sidekiq-pro'
 
 require_relative 'dwf/utils'
 require_relative 'dwf/workflow'
