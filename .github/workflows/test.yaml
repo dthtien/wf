@@ -1,4 +1,4 @@
-name: dwf
+name: Test
 
 on:
   push:
