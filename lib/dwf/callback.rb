@@ -1,4 +1,3 @@
-require 'sidekiq-pro'
 require_relative 'client'
 
 module Dwf
