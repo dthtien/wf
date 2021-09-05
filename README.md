@@ -39,7 +39,7 @@ end
 ```
 
 #### Note
-`dwf` supports 2 type of callback `Dwf::Workflow::BUILD_IN` and `Dwf::Workflow::SK_BATCH`
+`dwf` supports 2 callback types `Dwf::Workflow::BUILD_IN` and `Dwf::Workflow::SK_BATCH`
 - `Dwf::Workflow::BUILD_IN` is a build-in callback
 - `Dwf::Workflow::SK_BATCH` is [sidekiq batch](https://github.com/mperham/sidekiq/wiki/Batches) callback which required [`sidekiq-pro`](https://sidekiq.org/products/pro.html)
 
@@ -75,7 +75,7 @@ D Finished
 - [x] Support pass params
 - [x] Support with build-in callback
 - [x] Add github workflow
-- [ ] [WIF] Test
+- [ ] [WIP] Test
 - [ ] Transfer output through each node
 
 # References
