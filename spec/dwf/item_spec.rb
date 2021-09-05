@@ -122,9 +122,16 @@ describe Dwf::Item, item: true do
   end
 
   describe '#mark_as_started' do
-    before { item.mark_as_started }
+    let(:client_double) { double(persist_job: nil) }
+    before do
+      allow(Dwf::Client).to receive(:new).and_return client_double
+      item.mark_as_started
+    end
 
-    it { expect(item.started_at).not_to be_nil }
+    it do
+      expect(client_double).to have_received(:persist_job).with item
+      expect(item.started_at).not_to be_nil
+    end
   end
 
   describe '#mark_as_finished' do
