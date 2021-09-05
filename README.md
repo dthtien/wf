@@ -74,8 +74,8 @@ D Finished
 - [x] Make it work
 - [x] Support pass params
 - [x] Support with build-in callback
-- [ ] Test
-- [ ] Add github workflow
+- [x] Add github workflow
+- [ ] [WIF] Test
 - [ ] Transfer output through each node
 
 # References
