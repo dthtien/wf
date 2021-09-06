@@ -22,17 +22,46 @@ module Dwf
     private
 
     def setup_batch(processing_job_names, workflow_id)
-      batch = Sidekiq::Batch.new
-      batch.on(
-        :success,
-        'Dwf::Callback#process_next_step',
-        names: processing_job_names,
-        workflow_id: workflow_id
-      )
+      jobs = fetch_jobs(processing_job_names, workflow_id)
+      jobs_classification = classify_jobs jobs
 
-      batch.jobs do
-        processing_job_names.each { |job_name| perform_job(job_name, workflow_id) }
+      jobs_classification.values.each do |batch_jobs|
+        batch = Sidekiq::Batch.new
+        batch.on(
+          :success,
+          'Dwf::Callback#process_next_step',
+          names: batch_jobs.map(&:klass),
+          workflow_id: workflow_id
+        )
+
+        batch.jobs do
+          batch_jobs.each do |job|
+            job.persist_and_perform_async! if job.ready_to_start?
+          end
+        end
       end
+    end
+
+    def classify_jobs(jobs)
+      hash = {}
+      jobs.each do |job|
+        outgoing_jobs = job.outgoing
+        key = outgoing_jobs.empty? ? 'default_key' : outgoing_jobs.join
+
+        if hash[key].nil?
+          hash[key] = [job]
+        else
+          hash[key] = hash[key].push(job)
+        end
+      end
+
+      hash
+    end
+
+    def fetch_jobs(processing_job_names, workflow_id)
+      processing_job_names.map do |job_name|
+        client.find_job(workflow_id, job_name)
+      end.compact
     end
 
     def perform_job(job_name, workflow_id)
