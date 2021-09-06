@@ -47,7 +47,7 @@ By default `dwf` will use `Dwf::Workflow::BUILD_IN` callback.
 
 ### Execute flow
 ```ruby
-wf = TestWf.create
+wf = TestWf.create(callback_type: Dwf::Workflow::SK_BATCH)
 wf.start!
 ```
 
@@ -77,6 +77,7 @@ D Finished
 - [x] Add github workflow
 - [ ] [WIP] Test
 - [ ] Transfer output through each node
+- [ ] Support [Resque](https://github.com/resque/resque)
 
 # References
 - https://github.com/chaps-io/gush

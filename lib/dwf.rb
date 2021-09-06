@@ -14,6 +14,6 @@ require_relative 'dwf/worker'
 require_relative 'dwf/callback'
 
 module Dwf
-  VERSION = '0.1.3'
+  VERSION = '0.1.6'
 end
 
