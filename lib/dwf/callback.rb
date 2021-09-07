@@ -12,7 +12,7 @@ module Dwf
       return if processing_job_names.empty?
 
       overall = Sidekiq::Batch.new(status.parent_bid)
-      overall.jobs { setup_batch(processing_job_names, workflow_id) }
+      overall.jobs { setup_batches(processing_job_names, workflow_id) }
     end
 
     def start(job)
@@ -21,24 +21,27 @@ module Dwf
 
     private
 
-    def setup_batch(processing_job_names, workflow_id)
+    def setup_batches(processing_job_names, workflow_id)
       jobs = fetch_jobs(processing_job_names, workflow_id)
       jobs_classification = classify_jobs jobs
 
-      jobs_classification.values.each do |batch_jobs|
-        batch = Sidekiq::Batch.new
-        batch.on(
-          :success,
-          'Dwf::Callback#process_next_step',
-          names: batch_jobs.map(&:klass),
-          workflow_id: workflow_id
-        )
-
-        batch.jobs do
-          batch_jobs.each do |job|
-            job.persist_and_perform_async! if job.ready_to_start?
-          end
+      jobs_classification.each do |key, batch_jobs|
+        with_lock workflow_id, key do
+          setup_batch(batch_jobs, workflow_id)
         end
+      end
+    end
+
+    def setup_batch(jobs, workflow_id)
+      batch = Sidekiq::Batch.new
+      batch.on(
+        :success,
+        'Dwf::Callback#process_next_step',
+        names: jobs.map(&:klass),
+        workflow_id: workflow_id
+      )
+      batch.jobs do
+        jobs.each { |job| job.persist_and_perform_async! if job.ready_to_start? }
       end
     end
 
@@ -47,12 +50,7 @@ module Dwf
       jobs.each do |job|
         outgoing_jobs = job.outgoing
         key = outgoing_jobs.empty? ? 'default_key' : outgoing_jobs.join
-
-        if hash[key].nil?
-          hash[key] = [job]
-        else
-          hash[key] = hash[key].push(job)
-        end
+        hash[key] = hash[key].nil? ? [job] : hash[key].push(job)
       end
 
       hash
@@ -62,13 +60,6 @@ module Dwf
       processing_job_names.map do |job_name|
         client.find_job(workflow_id, job_name)
       end.compact
-    end
-
-    def perform_job(job_name, workflow_id)
-      with_lock workflow_id, job_name do
-        job = client.find_job(workflow_id, job_name)
-        job.persist_and_perform_async! if job.ready_to_start?
-      end
     end
 
     def with_lock(workflow_id, job_name)
