@@ -4,7 +4,7 @@
 # Installation
 ## 1. Add `dwf` to Gemfile
 ```ruby
-gem 'dwf', '~> 0.1.5'
+gem 'dwf', '~> 0.1.6'
 ```
 ## 2. Execute flow
 ### Declare jobs
@@ -75,6 +75,7 @@ D Finished
 - [x] Support pass params
 - [x] Support with build-in callback
 - [x] Add github workflow
+- [ ] Redis configurable
 - [ ] [WIP] Test
 - [ ] Transfer output through each node
 - [ ] Support [Resque](https://github.com/resque/resque)
