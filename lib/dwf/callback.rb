@@ -1,7 +1,10 @@
+# frozen_string_literal: true
 require_relative 'client'
 
 module Dwf
   class Callback
+    DEFAULT_KEY = 'default_key'
+
     def process_next_step(status, options)
       previous_job_names = options['names']
       workflow_id = options['workflow_id']
@@ -49,7 +52,7 @@ module Dwf
       hash = {}
       jobs.each do |job|
         outgoing_jobs = job.outgoing
-        key = outgoing_jobs.empty? ? 'default_key' : outgoing_jobs.join
+        key = outgoing_jobs.empty? ? DEFAULT_KEY : outgoing_jobs.join
         hash[key] = hash[key].nil? ? [job] : hash[key].push(job)
       end
 
