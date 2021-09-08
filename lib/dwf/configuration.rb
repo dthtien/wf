@@ -3,17 +3,13 @@
 module Dwf
   class Configuration
     NAMESPACE = 'dwf'
-    CONCURRENCY = 5
-    REDIS_URL = 'redis://localhost:6379'
-    TTL = -1
+    REDIS_OPTS = { url: 'redis://localhost:6379' }.freeze
 
-    attr_accessor :redis_url, :concurrency, :namespace, :ttl
+    attr_accessor :redis_opts, :namespace
 
     def initialize(hash = {})
-      @concurrency = hash.fetch(:concurrency, CONCURRENCY)
-      @namespace   = hash.fetch(:namespace, NAMESPACE)
-      @redis_url   = hash.fetch(:redis_url, REDIS_URL)
-      @ttl         = hash.fetch(:ttl, TTL)
+      @namespace = hash.fetch(:namespace, NAMESPACE)
+      @redis_opts = hash.fetch(:redis_url, REDIS_OPTS)
     end
   end
 end

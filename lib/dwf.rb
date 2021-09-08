@@ -12,8 +12,17 @@ require_relative 'dwf/item'
 require_relative 'dwf/client'
 require_relative 'dwf/worker'
 require_relative 'dwf/callback'
+require_relative 'dwf/configuration'
 
 module Dwf
   VERSION = '0.1.6'
+
+  def self.configuration
+    @configuration ||= Configuration.new
+  end
+
+  def self.config
+    yield configuration
+  end
 end
 

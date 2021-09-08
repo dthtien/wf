@@ -1,5 +1,11 @@
 module Dwf
   class Client
+    attr_reader :config
+
+    def initialize(config = Dwf.configuration)
+      @config = config
+    end
+
     def find_job(workflow_id, job_name)
       job_name_match = /(?<klass>\w*[^-])-(?<identifier>.*)/.match(job_name)
       data = if job_name_match
@@ -94,7 +100,7 @@ module Dwf
     end
 
     def redis
-      @redis ||= Redis.new
+      @redis ||= Redis.new(config.redis_opts)
     end
   end
 end

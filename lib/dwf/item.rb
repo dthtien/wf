@@ -1,10 +1,9 @@
 # frozen_string_literal: true
+
 require_relative 'client'
 
 module Dwf
   class Item
-    DEFAULT_QUEUE = 'default'
-
     attr_reader :workflow_id, :id, :params, :queue, :klass, :started_at,
       :enqueued_at, :finished_at, :failed_at, :callback_type
     attr_accessor :incoming, :outgoing
@@ -13,7 +12,7 @@ module Dwf
       @workflow_id = options[:workflow_id]
       @id = options[:id]
       @params = options[:params]
-      @queue = options[:queue] || DEFAULT_QUEUE
+      @queue = options[:queue]
       @incoming = options[:incoming] || []
       @outgoing = options[:outgoing] || []
       @klass = options[:klass] || self.class
@@ -41,7 +40,8 @@ module Dwf
     end
 
     def perform_async
-      Dwf::Worker.set(queue: queue).perform_async(workflow_id, name)
+      Dwf::Worker.set(queue: queue || client.config.namespace)
+                 .perform_async(workflow_id, name)
     end
 
     def name

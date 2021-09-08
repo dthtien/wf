@@ -16,7 +16,7 @@ describe Dwf::Item, item: true do
       params: {},
       incoming: incoming,
       outgoing: outgoing,
-      queue: Dwf::Item::DEFAULT_QUEUE,
+      queue: Dwf::Configuration::NAMESPACE,
       klass: 'Dwf::Item',
       started_at: started_at,
       finished_at: finished_at,
