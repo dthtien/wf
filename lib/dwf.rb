@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 require "bundler/setup"
 
 require 'sidekiq'
@@ -15,8 +16,6 @@ require_relative 'dwf/callback'
 require_relative 'dwf/configuration'
 
 module Dwf
-  VERSION = '0.1.6'
-
   def self.configuration
     @configuration ||= Configuration.new
   end

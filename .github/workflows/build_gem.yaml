@@ -8,10 +8,6 @@ on:
     branches: [ master ]
     paths:
       - 'dwf.gemspec'
-  pull_request:
-    branches: [ master ]
-    paths:
-      - 'dwf.gemspec'
 
 jobs:
   build:
