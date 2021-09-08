@@ -38,18 +38,19 @@ class TestWf < Dwf::Workflow
 end
 ```
 
-#### Note
-`dwf` supports 2 callback types `Dwf::Workflow::BUILD_IN` and `Dwf::Workflow::SK_BATCH`
-- `Dwf::Workflow::BUILD_IN` is a build-in callback
-- `Dwf::Workflow::SK_BATCH` is [sidekiq batch](https://github.com/mperham/sidekiq/wiki/Batches) callback which required [`sidekiq-pro`](https://sidekiq.org/products/pro.html)
-
-By default `dwf` will use `Dwf::Workflow::BUILD_IN` callback.
 
 ### Execute flow
 ```ruby
 wf = TestWf.create(callback_type: Dwf::Workflow::SK_BATCH)
 wf.start!
 ```
+
+#### Note
+`dwf` supports 2 callback types `Dwf::Workflow::BUILD_IN` and `Dwf::Workflow::SK_BATCH`
+- `Dwf::Workflow::BUILD_IN` is a build-in callback
+- `Dwf::Workflow::SK_BATCH` is [sidekiq batch](https://github.com/mperham/sidekiq/wiki/Batches) callback which required [`sidekiq-pro`](https://sidekiq.org/products/pro.html)
+
+By default `dwf` will use `Dwf::Workflow::BUILD_IN` callback.
 
 ### Output
 ```
@@ -70,12 +71,25 @@ D say hello
 D Finished
 ```
 
+# Config redis and default queue
+```ruby
+Dwf.config do |config|
+  SENTINELS = [
+    { host: "127.0.0.1", port: 26380 },
+    { host: "127.0.0.1", port: 26381 }
+  ]
+  config.opts = { host: 'mymaster', sentinels: SENTINELS, role: :master }
+  config.namespace = 'dwf'
+end
+```
+
+
 # Todo
 - [x] Make it work
 - [x] Support pass params
 - [x] Support with build-in callback
 - [x] Add github workflow
-- [ ] Redis configurable
+- [x] Redis configurable
 - [ ] [WIP] Test
 - [ ] Transfer output through each node
 - [ ] Support [Resque](https://github.com/resque/resque)

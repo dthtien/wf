@@ -1,5 +1,16 @@
 # Changelog
 All notable changes to this project will be documented in this file.
+## 0.1.7
+### Added
+- Allow to config redis and queue
+
+```ruby
+Dwf.config do |config|
+  config.opts = { url 'redis://127.0.0.1:6379' }
+  config.namespace = 'dwf'
+end
+```
+
 ## 0.1.6
 ### Added
 - Sidekiq batch callback: separate batches
