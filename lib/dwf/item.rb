@@ -9,19 +9,7 @@ module Dwf
     attr_accessor :incoming, :outgoing
 
     def initialize(options = {})
-      @workflow_id = options[:workflow_id]
-      @id = options[:id]
-      @params = options[:params]
-      @queue = options[:queue]
-      @incoming = options[:incoming] || []
-      @outgoing = options[:outgoing] || []
-      @klass = options[:klass] || self.class
-      @failed_at = options[:failed_at]
-      @finished_at = options[:finished_at]
-      @enqueued_at = options[:enqueued_at]
-      @started_at = options[:started_at]
-      @callback_type = options[:callback_type]
-      @output_payload = options[:output_payload]
+      assign_attributes(options)
     end
 
     def self.from_hash(hash)
@@ -38,6 +26,11 @@ module Dwf
 
     def cb_build_in?
       callback_type == Dwf::Workflow::BUILD_IN
+    end
+
+    def reload
+      item = client.find_job(workflow_id, name)
+      assign_attributes(item.to_hash)
     end
 
     def perform_async
@@ -175,6 +168,22 @@ module Dwf
 
     def client
       @client ||= Dwf::Client.new
+    end
+
+    def assign_attributes(options)
+      @workflow_id = options[:workflow_id]
+      @id = options[:id]
+      @params = options[:params]
+      @queue = options[:queue]
+      @incoming = options[:incoming] || []
+      @outgoing = options[:outgoing] || []
+      @klass = options[:klass] || self.class
+      @failed_at = options[:failed_at]
+      @finished_at = options[:finished_at]
+      @enqueued_at = options[:enqueued_at]
+      @started_at = options[:started_at]
+      @callback_type = options[:callback_type]
+      @output_payload = options[:output_payload]
     end
   end
 end
