@@ -1,5 +1,47 @@
 # Changelog
 All notable changes to this project will be documented in this file.
+## 0.1.8
+### Added
+- add pinlining feature
+
+```ruby
+class SendOutput < Dwf::Item
+  def perform
+    output('it works')
+  end
+end
+
+```
+
+`output` method used to output data from the job to add outgoing jobs
+
+```ruby
+class ReceiveOutput < Dwf::Item
+  def perform
+    message = payloads.first[:output] # it works
+  end
+end
+```
+
+`payloads` is an array that containing outputs from incoming jobs
+
+```
+[
+  {
+    id: "SendOutput|1849a3f9-5fce-401e-a73a-91fc1048356",
+    class: "SendOutput",
+    output: 'it works'
+  }
+]
+```
+
+```ruby
+Dwf.config do |config|
+  config.opts = { url 'redis://127.0.0.1:6379' }
+  config.namespace = 'dwf'
+end
+```
+
 ## 0.1.7
 ### Added
 - Allow to config redis and queue

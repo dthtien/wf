@@ -83,6 +83,39 @@ Dwf.config do |config|
 end
 ```
 
+# Pinelining
+You can pass jobs result to next nodes
+
+```ruby
+class SendOutput < Dwf::Item
+  def perform
+    output('it works')
+  end
+end
+
+```
+
+`output` method used to output data from the job to add outgoing jobs
+
+```ruby
+class ReceiveOutput < Dwf::Item
+  def perform
+    message = payloads.first[:output] # it works
+  end
+end
+```
+
+`payloads` is an array that containing outputs from incoming jobs
+
+```ruby
+[
+  {
+    id: "SendOutput|1849a3f9-5fce-401e-a73a-91fc1048356",
+    class: "SendOutput",
+    output: 'it works'
+  }
+]
+```
 
 # Todo
 - [x] Make it work
