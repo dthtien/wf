@@ -3,11 +3,10 @@
 
 lib = File.expand_path('../lib', __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-require_relative 'lib/dwf/version'
 
 Gem::Specification.new do |spec|
   spec.name          = "dwf"
-  spec.version       = Dwf::VERSION
+  spec.version       = '0.1.8'
   spec.authors       = ["dthtien"]
   spec.email         = ["tiendt2311@gmail.com"]
 
