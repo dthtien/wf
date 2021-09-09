@@ -181,4 +181,40 @@ describe Dwf::Item, item: true do
       it { expect(a_item).not_to have_received(:persist_and_perform_async!) }
     end
   end
+
+  describe '#output' do
+    before { item.output(1) }
+
+    it { expect(item.output_payload).to eq 1 }
+  end
+
+  describe '#payloads' do
+    let(:incoming) { ["A|#{SecureRandom.uuid}"] }
+    let(:client_double) { double(find_job: nil) }
+    let!(:a_item) do
+      described_class.new(
+        workflow_id: SecureRandom.uuid,
+        id: SecureRandom.uuid,
+        finished_at: finished_at,
+        output_payload: 1
+      )
+    end
+
+    before do
+      allow(Dwf::Client).to receive(:new).and_return client_double
+      allow(client_double)
+        .to receive(:find_job).and_return a_item
+    end
+
+    it do
+      expected_payload = [
+        {
+          class: a_item.class.name,
+          id: a_item.name,
+          output: 1
+        }
+      ]
+      expect(item.payloads).to eq expected_payload
+    end
+  end
 end

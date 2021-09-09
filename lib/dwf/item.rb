@@ -5,7 +5,7 @@ require_relative 'client'
 module Dwf
   class Item
     attr_reader :workflow_id, :id, :params, :queue, :klass, :started_at,
-      :enqueued_at, :finished_at, :failed_at, :callback_type
+      :enqueued_at, :finished_at, :failed_at, :callback_type, :output_payload
     attr_accessor :incoming, :outgoing
 
     def initialize(options = {})
@@ -21,6 +21,7 @@ module Dwf
       @enqueued_at = options[:enqueued_at]
       @started_at = options[:started_at]
       @callback_type = options[:callback_type]
+      @output_payload = options[:output_payload]
     end
 
     def self.from_hash(hash)
@@ -48,6 +49,10 @@ module Dwf
       @name ||= "#{klass}|#{id}"
     end
 
+    def output(data)
+      @output_payload = data
+    end
+
     def no_dependencies?
       incoming.empty?
     end
@@ -55,6 +60,17 @@ module Dwf
     def parents_succeeded?
       incoming.all? do |name|
         client.find_job(workflow_id, name).succeeded?
+      end
+    end
+
+    def payloads
+      incoming.map do |job_name|
+        job = client.find_job(workflow_id, job_name)
+        {
+          id: job.name,
+          class: job.klass.to_s,
+          output: job.output_payload
+        }
       end
     end
 
@@ -142,7 +158,8 @@ module Dwf
         failed_at: failed_at,
         params: params,
         workflow_id: workflow_id,
-        callback_type: callback_type
+        callback_type: callback_type,
+        output_payload: output_payload
       }
     end
 
