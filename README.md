@@ -4,7 +4,7 @@
 # Installation
 ## 1. Add `dwf` to Gemfile
 ```ruby
-gem 'dwf', '~> 0.1.6'
+gem 'dwf', '~> 0.1.9'
 ```
 ## 2. Execute flow
 ### Declare jobs
@@ -72,13 +72,14 @@ D Finished
 ```
 
 # Config redis and default queue
+`dwf` uses redis as the key value stograge through [redis-rb](https://github.com/redis/redis-rb), So you can pass redis configuration by `redis_opts`
 ```ruby
 Dwf.config do |config|
   SENTINELS = [
     { host: "127.0.0.1", port: 26380 },
     { host: "127.0.0.1", port: 26381 }
   ]
-  config.opts = { host: 'mymaster', sentinels: SENTINELS, role: :master }
+  config.redis_opts = { host: 'mymaster', sentinels: SENTINELS, role: :master }
   config.namespace = 'dwf'
 end
 ```
@@ -123,8 +124,8 @@ end
 - [x] Support with build-in callback
 - [x] Add github workflow
 - [x] Redis configurable
+- [x] Pinelining
 - [ ] [WIP] Test
-- [ ] Transfer output through each node
 - [ ] Support [Resque](https://github.com/resque/resque)
 
 # References

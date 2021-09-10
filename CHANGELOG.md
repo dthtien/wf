@@ -1,5 +1,10 @@
 # Changelog
 All notable changes to this project will be documented in this file.
+## 0.1.9
+### Added
+### Fixed
+- fix incorrect argument at configuration
+
 ## 0.1.8
 ### Added
 - add pinlining feature
