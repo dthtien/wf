@@ -9,7 +9,7 @@ module Dwf
 
     def initialize(hash = {})
       @namespace = hash.fetch(:namespace, NAMESPACE)
-      @redis_opts = hash.fetch(:redis_url, REDIS_OPTS)
+      @redis_opts = hash.fetch(:redis_options, REDIS_OPTS)
     end
   end
 end
