@@ -125,7 +125,8 @@ end
 - [x] Add github workflow
 - [x] Redis configurable
 - [x] Pinelining
-- [ ] [WIP] Test
+- [X] Test
+- [ ] Consistent item name
 - [ ] Support [Resque](https://github.com/resque/resque)
 
 # References
