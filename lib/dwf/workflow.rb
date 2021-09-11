@@ -10,7 +10,8 @@ module Dwf
       BUILD_IN = 'build-in',
       SK_BATCH = 'sk-batch'
     ].freeze
-    attr_reader :dependencies, :jobs, :started_at, :finished_at, :persisted, :stopped,
+    attr_accessor :jobs
+    attr_reader :dependencies, :started_at, :finished_at, :persisted, :stopped,
                 :callback_type
 
     class << self
@@ -32,17 +33,21 @@ module Dwf
       setup
     end
 
-    def start!
-      initial_jobs.each do |job|
-        cb_build_in? ? job.persist_and_perform_async! : Dwf::Callback.new.start(job)
-      end
-    end
-
-    def save
+    def persist!
       client.persist_workflow(self)
       jobs.each(&:persist!)
       mark_as_persisted
       true
+    end
+
+    alias save persist!
+
+    def start!
+      mark_as_started
+      persist!
+      initial_jobs.each do |job|
+        cb_build_in? ? job.persist_and_perform_async! : Dwf::Callback.new.start(job)
+      end
     end
 
     def cb_build_in?
@@ -139,7 +144,6 @@ module Dwf
     def mark_as_started
       @stopped = false
     end
-
 
     private
 
