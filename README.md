@@ -128,6 +128,8 @@ end
 - [X] Test
 - [ ] Consistent item name
 - [ ] Support [Resque](https://github.com/resque/resque)
+- [ ] Key value store plugable
+  - [ ] research https://github.com/moneta-rb/moneta
 
 # References
 - https://github.com/chaps-io/gush
