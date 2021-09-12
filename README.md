@@ -41,7 +41,8 @@ end
 
 ### Execute flow
 ```ruby
-wf = TestWf.create(callback_type: Dwf::Workflow::SK_BATCH)
+wf = TestWf.create
+wf.callback_type = Dwf::Workflow::SK_BATCH
 wf.start!
 ```
 

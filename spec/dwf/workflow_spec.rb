@@ -149,4 +149,14 @@ describe Dwf::Workflow, workflow: true do
       expect(job_c.outgoing).to be_empty
     end
   end
+
+  describe '#callback_type' do
+    let!(:workflow) { described_class.new }
+
+    it {
+      expect(workflow.callback_type).to eq described_class::BUILD_IN
+      workflow.callback_type = described_class::SK_BATCH
+      expect(workflow.callback_type).to eq described_class::SK_BATCH
+    }
+  end
 end

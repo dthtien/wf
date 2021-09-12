@@ -10,9 +10,8 @@ module Dwf
       BUILD_IN = 'build-in',
       SK_BATCH = 'sk-batch'
     ].freeze
-    attr_accessor :jobs
-    attr_reader :dependencies, :started_at, :finished_at, :persisted, :stopped,
-                :callback_type
+    attr_accessor :jobs, :callback_type
+    attr_reader :dependencies, :started_at, :finished_at, :persisted, :stopped, :arguments
 
     class << self
       def create(*args)
@@ -22,13 +21,14 @@ module Dwf
       end
     end
 
-    def initialize(options = {})
+    def initialize(*args)
       @dependencies = []
       @id = id
       @jobs = []
       @persisted = false
       @stopped = false
-      @callback_type = options[:callback_type] || BUILD_IN
+      @arguments = args
+      @callback_type = BUILD_IN
 
       setup
     end
@@ -58,7 +58,7 @@ module Dwf
       @id ||= client.build_workflow_id
     end
 
-    def configure; end
+    def configure(*arguments); end
 
     def run(klass, options = {})
       node = klass.new(
@@ -152,7 +152,7 @@ module Dwf
     end
 
     def setup
-      configure
+      configure(*arguments)
       resolve_dependencies
     end
 
