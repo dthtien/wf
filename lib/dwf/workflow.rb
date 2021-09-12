@@ -54,6 +54,14 @@ module Dwf
       end
     end
 
+    def reload
+      flow = self.class.find(id)
+      self.stopped = flow.stopped
+      self.jobs = flow.jobs
+
+      self
+    end
+
     def cb_build_in?
       callback_type == BUILD_IN
     end

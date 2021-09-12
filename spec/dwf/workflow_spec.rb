@@ -34,6 +34,12 @@ describe Dwf::Workflow, workflow: true do
     end
   end
 
+  describe '#find' do
+    before { Dwf::Workflow.find(workflow_id) }
+
+    it { expect(client).to have_received(:find_workflow).with(workflow_id) }
+  end
+
   describe '#persist!' do
     let(:workflow) { described_class.new }
     let(:job) do
@@ -161,8 +167,17 @@ describe Dwf::Workflow, workflow: true do
     }
   end
 
-  describe '#find' do
-    before { Dwf::Workflow.find(workflow_id) }
+  describe '#reload' do
+    let!(:workflow) do
+      flow = described_class.new
+      flow.id = workflow_id
+      flow
+    end
+
+    before do
+      allow(client).to receive(:find_workflow).and_return workflow
+      workflow.reload
+    end
 
     it { expect(client).to have_received(:find_workflow).with(workflow_id) }
   end
