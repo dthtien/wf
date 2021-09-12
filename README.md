@@ -4,7 +4,7 @@
 # Installation
 ## 1. Add `dwf` to Gemfile
 ```ruby
-gem 'dwf', '~> 0.1.9'
+gem 'dwf', '~> 0.1.10'
 ```
 ## 2. Execute flow
 ### Declare jobs
@@ -27,9 +27,9 @@ end
 require 'dwf'
 
 class TestWf < Dwf::Workflow
-  def configure
+  def configure(arguments)
     run A
-    run B, after: A
+    run B, after: A, params: arguments
     run C, after: A
     run E, after: [B, C], params: 'E say hello'
     run D, after: [E], params: 'D say hello'
@@ -41,7 +41,7 @@ end
 
 ### Execute flow
 ```ruby
-wf = TestWf.create
+wf = TestWf.create(arguments)
 wf.callback_type = Dwf::Workflow::SK_BATCH
 wf.start!
 ```
