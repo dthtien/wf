@@ -16,7 +16,8 @@ describe Dwf::Workflow, workflow: true do
       persist_workflow: nil,
       persist_job: nil,
       build_workflow_id: workflow_id,
-      build_job_id: item_id
+      build_job_id: item_id,
+      find_workflow: nil
     )
   end
   before do
@@ -158,5 +159,11 @@ describe Dwf::Workflow, workflow: true do
       workflow.callback_type = described_class::SK_BATCH
       expect(workflow.callback_type).to eq described_class::SK_BATCH
     }
+  end
+
+  describe '#find' do
+    before { Dwf::Workflow.find(workflow_id) }
+
+    it { expect(client).to have_received(:find_workflow).with(workflow_id) }
   end
 end
