@@ -39,6 +39,29 @@ describe Dwf::Client, client: true do
     end
   end
 
+  describe '#find_workflow' do
+    before do
+      wf = Dwf::Workflow.new
+      wf.id = workflow_id
+      wf.save
+      j = Dwf::Item.new(id: id, workflow_id: workflow_id)
+      j.persist!
+    end
+
+    it do
+      wf = client.find_workflow(workflow_id)
+
+      expect(wf).not_to be_nil
+      expect(wf.jobs.first).to be_kind_of(Dwf::Item)
+    end
+
+    it do
+      expect do
+        client.find_workflow(SecureRandom.uuid)
+      end.to raise_error Dwf::WorkflowNotFound
+    end
+  end
+
   describe '#persist_job' do
     let!(:job) { Dwf::Item.new(workflow_id: workflow_id, id: id) }
 
