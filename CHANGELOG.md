@@ -1,5 +1,28 @@
 # Changelog
 All notable changes to this project will be documented in this file.
+## 0.1.10
+### Added
+- Allow to use argument within workflow and update the defining callback way
+```
+class TestWf < Dwf::Workflow
+  def configure(arguments)
+    run A
+    run B, after: A, params: argument
+    run C, after: A, params: argument
+  end
+end
+
+wf = TestWf.create(arguments)
+wf.callback_type = Dwf::Workflow::SK_BATCH
+
+```
+- Support `find` workflow and `reload` workflow
+```
+wf = TestWf.create
+Dwf::Workflow.find(wf.id)
+wf.reload
+```
+
 ## 0.1.9
 ### Added
 ### Fixed
