@@ -1,0 +1,11 @@
+#!/usr/bin/env ruby
+require "pathname"
+require "bundler"
+Bundler.require
+
+bin_file = Pathname.new(__FILE__).realpath
+# add self to libpath
+$:.unshift File.expand_path("../../lib", bin_file)
+require 'dwf'
+require_relative '../tmp/app'
+Dwf::CLI.new(ARGV).call
