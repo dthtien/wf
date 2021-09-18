@@ -140,19 +140,19 @@ describe Dwf::Workflow, workflow: true do
     end
 
     it do
-      job_a = workflow.find_job('AItem')
+      job_a = workflow.find_job("AItem")
 
       expect(job_a.incoming).to be_empty
       expect(job_a.outgoing).to eq ["BItem|#{item_id}"]
 
       job_b = workflow.find_job('BItem')
 
-      expect(job_b.incoming).to eq ['AItem']
+      expect(job_b.incoming).to eq ["AItem|#{item_id}"]
       expect(job_b.outgoing).to eq ["CItem|#{item_id}"]
 
       job_c = workflow.find_job('CItem')
 
-      expect(job_c.incoming).to eq ['BItem']
+      expect(job_c.incoming).to eq ["BItem|#{item_id}"]
       expect(job_c.outgoing).to be_empty
     end
   end
@@ -160,11 +160,11 @@ describe Dwf::Workflow, workflow: true do
   describe '#callback_type' do
     let!(:workflow) { described_class.new }
 
-    it {
-      expect(workflow.callback_type).to eq described_class::BUILD_IN
-      workflow.callback_type = described_class::SK_BATCH
+    it do
       expect(workflow.callback_type).to eq described_class::SK_BATCH
-    }
+      workflow.callback_type = described_class::BUILD_IN
+      expect(workflow.callback_type).to eq described_class::BUILD_IN
+    end
   end
 
   describe '#reload' do
