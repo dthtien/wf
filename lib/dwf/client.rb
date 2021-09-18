@@ -124,6 +124,8 @@ module Dwf
     def workflow_from_hash(hash, nodes = [])
       flow = Module.const_get(hash[:klass]).new(*hash[:arguments])
       flow.jobs = []
+      flow.outgoing = hash.fetch(:outgoing, [])
+      flow.incoming = hash.fetch(:incoming, [])
       flow.stopped = hash.fetch(:stopped, false)
       flow.id = hash[:id]
       flow.jobs = nodes.map do |node|

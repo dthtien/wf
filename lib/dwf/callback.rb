@@ -9,8 +9,13 @@ module Dwf
       previous_job_names = options['names']
       workflow_id = options['workflow_id']
       processing_job_names = previous_job_names.map do |job_name|
-        job = client.find_job(workflow_id, job_name)
-        job.outgoing
+        if job_name.downcase.include?('workflow')
+          _, id = job_name.split('|')
+          node = client.find_workflow(id)
+        else
+          node = client.find_job(workflow_id, job_name)
+        end
+        node.outgoing
       end.flatten.uniq
       return if processing_job_names.empty?
 
@@ -40,11 +45,13 @@ module Dwf
       batch.on(
         :success,
         'Dwf::Callback#process_next_step',
-        names: jobs.map(&:klass),
+        names: jobs.map(&:name),
         workflow_id: workflow_id
       )
       batch.jobs do
-        jobs.each { |job| job.persist_and_perform_async! if job.ready_to_start? }
+        jobs.each do |job|
+          job.persist_and_perform_async! if job.ready_to_start?
+        end
       end
     end
 
@@ -61,7 +68,12 @@ module Dwf
 
     def fetch_jobs(processing_job_names, workflow_id)
       processing_job_names.map do |job_name|
-        client.find_job(workflow_id, job_name)
+        if job_name.downcase.include?('workflow')
+          _, id = job_name.split('|')
+          client.find_workflow(id)
+        else
+          client.find_job(workflow_id, job_name)
+        end
       end.compact
     end
 

@@ -52,7 +52,12 @@ module Dwf
 
     def parents_succeeded?
       incoming.all? do |name|
-        client.find_job(workflow_id, name).succeeded?
+        if name.downcase.include?('workflow')
+          _, fid = name.split('|')
+          client.find_workflow(fid).succeeded?
+        else
+          client.find_job(workflow_id, name).succeeded?
+        end
       end
     end
 
@@ -162,6 +167,10 @@ module Dwf
 
     def persist!
       client.persist_job(self)
+    end
+
+    def workflow?
+      false
     end
 
     private

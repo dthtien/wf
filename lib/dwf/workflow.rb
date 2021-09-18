@@ -3,6 +3,7 @@
 require_relative 'client'
 require_relative 'worker'
 require_relative 'callback'
+require 'byebug'
 
 module Dwf
   class Workflow
@@ -10,8 +11,8 @@ module Dwf
       BUILD_IN = 'build-in',
       SK_BATCH = 'sk-batch'
     ].freeze
-    attr_accessor :jobs, :callback_type, :stopped, :id
-    attr_reader :dependencies, :started_at, :finished_at, :persisted, :arguments
+    attr_accessor :jobs, :callback_type, :stopped, :id, :incoming, :outgoing, :parent_id
+    attr_reader :dependencies, :started_at, :finished_at, :persisted, :arguments, :klass
 
     class << self
       def create(*args)
@@ -32,7 +33,11 @@ module Dwf
       @persisted = false
       @stopped = false
       @arguments = args
-      @callback_type = BUILD_IN
+      @parent_id = nil
+      @klass = self.class
+      @callback_type = SK_BATCH
+      @incoming = []
+      @outgoing = []
 
       setup
     end
@@ -44,7 +49,19 @@ module Dwf
       true
     end
 
+    def workflow?
+      true
+    end
+
+    def name
+      "#{self.class.name}|#{id}"
+    end
+
     alias save persist!
+
+    def succeeded?
+      finished? && !failed?
+    end
 
     def start!
       mark_as_started
@@ -53,6 +70,8 @@ module Dwf
         cb_build_in? ? job.persist_and_perform_async! : Dwf::Callback.new.start(job)
       end
     end
+
+    alias persist_and_perform_async! start!
 
     def reload
       flow = self.class.find(id)
@@ -73,13 +92,19 @@ module Dwf
     def configure(*arguments); end
 
     def run(klass, options = {})
-      node = klass.new(
-        workflow_id: id,
-        id: client.build_job_id(id, klass.to_s),
-        params: options.fetch(:params, {}),
-        queue: options[:queue],
-        callback_type: callback_type
-      )
+      node = if klass < Dwf::Workflow
+               flow = klass.create
+               flow.parent_id = id
+               flow
+             else
+               klass.new(
+                 workflow_id: id,
+                 id: client.build_job_id(id, klass.to_s),
+                 params: options.fetch(:params, {}),
+                 queue: options[:queue],
+                 callback_type: callback_type
+               )
+             end
 
       jobs << node
 
@@ -112,8 +137,15 @@ module Dwf
         stopped: stopped,
         started_at: started_at,
         finished_at: finished_at,
-        callback_type: callback_type
+        callback_type: callback_type,
+        incoming: incoming,
+        outgoing: outgoing,
+        parent_id: parent_id
       }
+    end
+
+    def ready_to_start?
+      true
     end
 
     def as_json
@@ -157,6 +189,10 @@ module Dwf
       @stopped = false
     end
 
+    def no_dependencies?
+      incoming.empty?
+    end
+
     private
 
     def initial_jobs
@@ -164,17 +200,30 @@ module Dwf
     end
 
     def setup
-      configure(*arguments)
+      configure(*@arguments)
       resolve_dependencies
+    end
+
+    def find_node(node_name)
+      if node_name.downcase.include?('workflow')
+        find_subworkflow(node_name)
+      else
+        find_job(node_name)
+      end
+    end
+
+    def find_subworkflow(node_name)
+      fname, _ = node_name.split('|')
+      jobs.find { |j| j.klass.name == fname }
     end
 
     def resolve_dependencies
       @dependencies.each do |dependency|
-        from = find_job(dependency[:from])
-        to   = find_job(dependency[:to])
+        from = find_node(dependency[:from])
+        to   = find_node(dependency[:to])
 
-        to.incoming << dependency[:from]
-        from.outgoing << dependency[:to]
+        to.incoming << from.name
+        from.outgoing << to.name
       end
     end
 
