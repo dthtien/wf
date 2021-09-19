@@ -170,7 +170,7 @@ module Dwf
     end
 
     def workflow?
-      false
+      self.class < Dwf::Workflow
     end
 
     private

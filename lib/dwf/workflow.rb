@@ -3,7 +3,6 @@
 require_relative 'client'
 require_relative 'worker'
 require_relative 'callback'
-require 'byebug'
 
 module Dwf
   class Workflow
@@ -50,7 +49,7 @@ module Dwf
     end
 
     def workflow?
-      true
+      self.class < Dwf::Workflow
     end
 
     def name
@@ -93,8 +92,9 @@ module Dwf
 
     def run(klass, options = {})
       node = if klass < Dwf::Workflow
-               flow = klass.create
+               flow = klass.new
                flow.parent_id = id
+               flow.save
                flow
              else
                klass.new(

@@ -2,6 +2,9 @@
 
 require 'spec_helper'
 require 'mock_redis'
+Wf1 = Class.new(Dwf::Workflow)
+Wf2 = Class.new(Dwf::Workflow)
+
 
 describe Dwf::Client, client: true do
   let(:client) { described_class.new }
@@ -76,13 +79,44 @@ describe Dwf::Client, client: true do
     end
   end
 
+  describe '#find_sub_workflow' do
+    let!(:wf1) { Wf1.create }
+    let!(:wf2) do
+      wf = Wf2.new
+      wf.parent_id = wf1.id
+      wf.save
+      wf
+    end
+
+    it do
+      wf = client.find_sub_workflow(wf2.class.name, wf1.id)
+      expect(wf).to be_kind_of(Wf2)
+    end
+  end
+
+  describe '#sub_workflows' do
+    let!(:wf1) { Wf1.create }
+    let!(:wf2) do
+      wf = Wf2.new
+      wf.parent_id = wf1.id
+      wf.save
+      wf
+    end
+
+    it do
+      wfs = client.sub_workflows(wf1.id)
+      expect(wfs).not_to be_empty
+      expect(wfs.first).to be_kind_of(Wf2)
+    end
+  end
+
   describe '#persist_workflow' do
     let(:workflow) { Dwf::Workflow.new }
 
     it do
       expect(redis.exists?("dwf.workflows.#{workflow.id}")).to be_falsy
       client.persist_workflow(workflow)
-      expect(redis.exists?("dwf.workflows.#{workflow.id}")).to be_truthy
+      expect(redis.keys("dwf.workflows.#{workflow.id}*").any?).to be_truthy
     end
   end
 
