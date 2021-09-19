@@ -9,12 +9,7 @@ module Dwf
       previous_job_names = options['names']
       workflow_id = options['workflow_id']
       processing_job_names = previous_job_names.map do |job_name|
-        if job_name.downcase.include?('workflow')
-          _, id = job_name.split('|')
-          node = client.find_workflow(id)
-        else
-          node = client.find_job(workflow_id, job_name)
-        end
+        node = client.find_node(job_name, workflow_id)
         node.outgoing
       end.flatten.uniq
       return if processing_job_names.empty?
@@ -68,12 +63,7 @@ module Dwf
 
     def fetch_jobs(processing_job_names, workflow_id)
       processing_job_names.map do |job_name|
-        if job_name.downcase.include?('workflow')
-          _, id = job_name.split('|')
-          client.find_workflow(id)
-        else
-          client.find_job(workflow_id, job_name)
-        end
+        client.find_node(job_name, workflow_id)
       end.compact
     end
 

@@ -89,7 +89,7 @@ describe Dwf::Item, item: true do
     before do
       allow(Dwf::Client).to receive(:new).and_return client_double
       allow(client_double)
-        .to receive(:find_job).and_return a_item
+        .to receive(:find_node).and_return a_item
     end
 
     context 'parent jobs already finished' do
@@ -98,8 +98,8 @@ describe Dwf::Item, item: true do
       it do
         expect(item.parents_succeeded?).to be_truthy
         expect(client_double)
-          .to have_received(:find_job)
-          .with(workflow_id, incoming.first)
+          .to have_received(:find_node)
+          .with(incoming.first, workflow_id)
       end
     end
 
@@ -109,8 +109,8 @@ describe Dwf::Item, item: true do
       it do
         expect(item.parents_succeeded?).to be_falsy
         expect(client_double)
-          .to have_received(:find_job)
-          .with(workflow_id, incoming.first)
+          .to have_received(:find_node)
+          .with(incoming.first, workflow_id)
       end
     end
   end

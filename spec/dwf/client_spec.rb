@@ -32,12 +32,12 @@ describe Dwf::Client, client: true do
     end
 
     context 'find by item name' do
-      it {
+      it do
         item = client.find_job(workflow_id, job.name)
         expect(item.workflow_id).to eq workflow_id
         expect(item.id).to eq id
         expect(item.name).to eq job.name
-      }
+      end
     end
   end
 

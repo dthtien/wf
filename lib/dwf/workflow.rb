@@ -144,8 +144,12 @@ module Dwf
       }
     end
 
+    def parents_succeeded?
+      incoming.all? { |name| client.find_node(name, parent_id).succeeded? }
+    end
+
     def ready_to_start?
-      true
+      !running? && !started? && !finished? && !failed? && parents_succeeded?
     end
 
     def as_json
@@ -205,7 +209,7 @@ module Dwf
     end
 
     def find_node(node_name)
-      if node_name.downcase.include?('workflow')
+      if Utils.workflow_name?(node_name)
         find_subworkflow(node_name)
       else
         find_job(node_name)
@@ -213,7 +217,7 @@ module Dwf
     end
 
     def find_subworkflow(node_name)
-      fname, _ = node_name.split('|')
+      fname, = node_name.split('|')
       jobs.find { |j| j.klass.name == fname }
     end
 
