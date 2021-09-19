@@ -2,9 +2,8 @@
 
 require 'spec_helper'
 require 'mock_redis'
-Wf1 = Class.new(Dwf::Workflow)
-Wf2 = Class.new(Dwf::Workflow)
-
+FirstWorkflow = Class.new(Dwf::Workflow)
+SecondWorkflow = Class.new(Dwf::Workflow)
 
 describe Dwf::Client, client: true do
   let(:client) { described_class.new }
@@ -65,6 +64,47 @@ describe Dwf::Client, client: true do
     end
   end
 
+  describe '#find_node' do
+    context 'find job' do
+      let!(:job) do
+        j = Dwf::Item.new(workflow_id: workflow_id, id: id)
+        j.persist!
+        j
+      end
+
+      it do
+        item = client.find_node(Dwf::Item.name, workflow_id)
+        expect(item.workflow_id).to eq workflow_id
+        expect(item.id).to eq id
+        expect(item.name).to eq job.name
+      end
+    end
+
+    context 'find_workflow' do
+      let!(:wf1) { FirstWorkflow.create }
+      let!(:wf2) do
+        wf = SecondWorkflow.new
+        wf.parent_id = wf1.id
+        wf.save
+        wf
+      end
+
+      context 'find with class name and parent id' do
+        it do
+          wf = client.find_node(wf2.class.name, wf1.id)
+          expect(wf).to be_kind_of(SecondWorkflow)
+        end
+      end
+
+      context 'find with name and parent id' do
+        it do
+          wf = client.find_node(wf2.name, wf1.id)
+          expect(wf).to be_kind_of(SecondWorkflow)
+        end
+      end
+    end
+  end
+
   describe '#persist_job' do
     let!(:job) { Dwf::Item.new(workflow_id: workflow_id, id: id) }
 
@@ -80,9 +120,9 @@ describe Dwf::Client, client: true do
   end
 
   describe '#find_sub_workflow' do
-    let!(:wf1) { Wf1.create }
+    let!(:wf1) { FirstWorkflow.create }
     let!(:wf2) do
-      wf = Wf2.new
+      wf = SecondWorkflow.new
       wf.parent_id = wf1.id
       wf.save
       wf
@@ -90,14 +130,14 @@ describe Dwf::Client, client: true do
 
     it do
       wf = client.find_sub_workflow(wf2.class.name, wf1.id)
-      expect(wf).to be_kind_of(Wf2)
+      expect(wf).to be_kind_of(SecondWorkflow)
     end
   end
 
   describe '#sub_workflows' do
-    let!(:wf1) { Wf1.create }
+    let!(:wf1) { FirstWorkflow.create }
     let!(:wf2) do
-      wf = Wf2.new
+      wf = SecondWorkflow.new
       wf.parent_id = wf1.id
       wf.save
       wf
@@ -106,7 +146,7 @@ describe Dwf::Client, client: true do
     it do
       wfs = client.sub_workflows(wf1.id)
       expect(wfs).not_to be_empty
-      expect(wfs.first).to be_kind_of(Wf2)
+      expect(wfs.first).to be_kind_of(SecondWorkflow)
     end
   end
 

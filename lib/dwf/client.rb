@@ -23,6 +23,19 @@ module Dwf
       Dwf::Item.from_hash(Dwf::Utils.symbolize_keys(data))
     end
 
+    def find_node(name, workflow_id)
+      if Utils.workflow_name?(name)
+        if name.include?('|')
+          _, id = name.split('|')
+        else
+          id = workflow_id(name, workflow_id)
+        end
+        find_workflow(id)
+      else
+        find_job(workflow_id, name)
+      end
+    end
+
     def find_workflow(id)
       key = redis.keys("dwf.workflows.#{id}*").first
       data = redis.get(key)
