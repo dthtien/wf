@@ -90,21 +90,24 @@ module Dwf
 
     def configure(*arguments); end
 
+    def run_sub_workflow(klass, options = {})
+      node = klass.new
+      node.parent_id = id
+      node.save
+      jobs << node
+
+      build_dependencies_structure(node, options)
+      node.name
+    end
+
     def run(klass, options = {})
-      node = if klass < Dwf::Workflow
-               flow = klass.new
-               flow.parent_id = id
-               flow.save
-               flow
-             else
-               klass.new(
-                 workflow_id: id,
-                 id: client.build_job_id(id, klass.to_s),
-                 params: options.fetch(:params, {}),
-                 queue: options[:queue],
-                 callback_type: callback_type
-               )
-             end
+      node = klass.new(
+        workflow_id: id,
+        id: client.build_job_id(id, klass.to_s),
+        params: options.fetch(:params, {}),
+        queue: options[:queue],
+        callback_type: callback_type
+      )
 
       jobs << node
 
