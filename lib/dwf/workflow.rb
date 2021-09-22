@@ -2,10 +2,13 @@
 
 require_relative 'client'
 require_relative 'worker'
+require_relative 'checkable'
 require_relative 'callback'
 
 module Dwf
   class Workflow
+    include Checkable
+
     CALLBACK_TYPES = [
       BUILD_IN = 'build-in',
       SK_BATCH = 'sk-batch'
@@ -48,19 +51,11 @@ module Dwf
       true
     end
 
-    def workflow?
-      self.class < Dwf::Workflow
-    end
-
     def name
       "#{self.class.name}|#{id}"
     end
 
     alias save persist!
-
-    def succeeded?
-      finished? && !failed?
-    end
 
     def start!
       mark_as_started
@@ -90,25 +85,8 @@ module Dwf
 
     def configure(*arguments); end
 
-    def run_sub_workflow(klass, options = {})
-      node = klass.new
-      node.parent_id = id
-      node.save
-      jobs << node
-
-      build_dependencies_structure(node, options)
-      node.name
-    end
-
     def run(klass, options = {})
-      node = klass.new(
-        workflow_id: id,
-        id: client.build_job_id(id, klass.to_s),
-        params: options.fetch(:params, {}),
-        queue: options[:queue],
-        callback_type: callback_type
-      )
-
+      node = build_node(klass, options)
       jobs << node
 
       build_dependencies_structure(node, options)
@@ -147,14 +125,6 @@ module Dwf
       }
     end
 
-    def parents_succeeded?
-      incoming.all? { |name| client.find_node(name, parent_id).succeeded? }
-    end
-
-    def ready_to_start?
-      !running? && !started? && !finished? && !failed? && parents_succeeded?
-    end
-
     def as_json
       to_hash.to_json
     end
@@ -163,13 +133,7 @@ module Dwf
       jobs.all?(&:finished?)
     end
 
-    def started?
-      !!started_at
-    end
-
-    def running?
-      started? && !finished?
-    end
+    alias enqueued? started?
 
     def failed?
       jobs.any?(&:failed?)
@@ -177,6 +141,10 @@ module Dwf
 
     def stopped?
       stopped
+    end
+
+    def parents_succeeded?
+      incoming.all? { |name| client.find_node(name, parent_id).succeeded? }
     end
 
     def status
@@ -196,11 +164,24 @@ module Dwf
       @stopped = false
     end
 
-    def no_dependencies?
-      incoming.empty?
-    end
-
     private
+
+    def build_node(klass, options)
+      if klass < Dwf::Workflow
+        node = klass.new
+        node.parent_id = id
+        node.save
+        node
+      else
+        klass.new(
+          workflow_id: id,
+          id: client.build_job_id(id, klass.to_s),
+          params: options.fetch(:params, {}),
+          queue: options[:queue],
+          callback_type: callback_type
+        )
+      end
+    end
 
     def initial_jobs
       jobs.select(&:no_dependencies?)

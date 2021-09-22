@@ -1,9 +1,12 @@
 # frozen_string_literal: true
 
 require_relative 'client'
+require_relative 'checkable'
 
 module Dwf
   class Item
+    include Checkable
+
     attr_reader :workflow_id, :id, :params, :queue, :klass, :started_at,
       :enqueued_at, :finished_at, :failed_at, :callback_type, :output_payload
     attr_accessor :incoming, :outgoing
@@ -105,22 +108,6 @@ module Dwf
 
     def failed?
       !failed_at.nil?
-    end
-
-    def succeeded?
-      finished? && !failed?
-    end
-
-    def started?
-      !started_at.nil?
-    end
-
-    def running?
-      started? && !finished?
-    end
-
-    def ready_to_start?
-      !running? && !enqueued? && !finished? && !failed? && parents_succeeded?
     end
 
     def current_timestamp
