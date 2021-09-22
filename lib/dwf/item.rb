@@ -149,10 +149,6 @@ module Dwf
       client.persist_job(self)
     end
 
-    def workflow?
-      self.class < Dwf::Workflow
-    end
-
     private
 
     def client
