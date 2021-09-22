@@ -168,7 +168,7 @@ module Dwf
 
     def build_node(klass, options)
       if klass < Dwf::Workflow
-        node = klass.new
+        node = options[:params].nil? ? klass.new : klass.new(options[:params])
         node.parent_id = id
         node.save
         node
