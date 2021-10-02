@@ -20,7 +20,8 @@ describe Dwf::Item, item: true do
       klass: 'Dwf::Item',
       started_at: started_at,
       finished_at: finished_at,
-      callback_type: Dwf::Workflow::BUILD_IN
+      callback_type: Dwf::Workflow::BUILD_IN,
+      payloads: nil
     }
   end
   let!(:item) { described_class.new(options) }
@@ -199,7 +200,6 @@ describe Dwf::Item, item: true do
         output_payload: 1
       )
     end
-    let!(:workflow) { Dwf::Workflow.new }
 
     before do
       allow(Dwf::Client).to receive(:new).and_return client_double
@@ -217,6 +217,22 @@ describe Dwf::Item, item: true do
         }
       ]
       expect(item.payloads).to eq expected_payload
+    end
+  end
+
+  describe '#start_batch!' do
+    let(:callback_double) { double(start: nil) }
+    let(:client_double) { double(persist_job: nil) }
+
+    before do
+      allow(Dwf::Client).to receive(:new).and_return client_double
+      allow(Dwf::Callback).to receive(:new).and_return callback_double
+      item.start_batch!
+    end
+
+    it do
+      expect(callback_double).to have_received(:start).with(item)
+      expect(item.enqueued_at).not_to be_nil
     end
   end
 end

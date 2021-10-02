@@ -2,12 +2,12 @@
 
 require_relative 'client'
 require_relative 'worker'
-require_relative 'checkable'
+require_relative 'concerns/checkable'
 require_relative 'callback'
 
 module Dwf
   class Workflow
-    include Checkable
+    include Concerns::Checkable
 
     CALLBACK_TYPES = [
       BUILD_IN = 'build-in',
@@ -55,14 +55,23 @@ module Dwf
       "#{self.class.name}|#{id}"
     end
 
+    def sub_workflow?
+      !parent_id.nil?
+    end
+
     alias save persist!
 
     def start!
       mark_as_started
       persist!
       initial_jobs.each do |job|
-        cb_build_in? ? job.persist_and_perform_async! : Dwf::Callback.new.start(job)
+        job.payloads = payloads if sub_workflow?
+        job.start_initial!
       end
+    end
+
+    def payloads
+      @payloads ||= build_payloads
     end
 
     alias persist_and_perform_async! start!
@@ -170,6 +179,7 @@ module Dwf
       if klass < Dwf::Workflow
         node = options[:params].nil? ? klass.new : klass.new(options[:params])
         node.parent_id = id
+        node.callback_type = callback_type
         node.save
         node
       else
@@ -188,7 +198,7 @@ module Dwf
     end
 
     def setup
-      configure(*@arguments)
+      configure(*arguments)
       resolve_dependencies
     end
 
@@ -213,6 +223,25 @@ module Dwf
         to.incoming << from.name
         from.outgoing << to.name
       end
+    end
+
+    def build_payloads
+      return unless sub_workflow?
+
+      data = incoming.map do |job_name|
+        next if Utils.workflow_name?(job_name)
+
+        node = client.find_node(job_name, parent_id)
+        next if node.output_payload.nil?
+
+        {
+          id: node.name,
+          class: node.klass.to_s,
+          output: node.output_payload
+        }
+      end.compact
+
+      data.empty? ? nil : data
     end
 
     def build_dependencies_structure(node, options)

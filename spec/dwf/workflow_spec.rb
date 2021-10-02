@@ -226,4 +226,60 @@ describe Dwf::Workflow, workflow: true do
       end
     end
   end
+
+  describe '#sub_workflow?' do
+    let!(:workflow) { described_class.new }
+    let!(:sub_workflow) do
+      flow = described_class.new
+      flow.parent_id = workflow.id
+      flow
+    end
+
+    specify do
+      expect(workflow.sub_workflow?).to be_falsy
+      expect(sub_workflow.sub_workflow?).to be_truthy
+    end
+  end
+
+  describe '#payloads' do
+    let!(:item) do
+      Dwf::Item.new(
+        workflow_id: SecureRandom.uuid,
+        id: SecureRandom.uuid,
+        output_payload: 1
+      )
+    end
+    let(:workflow) { described_class.new }
+
+    context 'when workflow is main flow' do
+      it { expect(workflow.payloads).to be_nil }
+    end
+
+    context 'when workflow is sub flow' do
+      before do
+        workflow.incoming = incoming
+        workflow.parent_id = SecureRandom.uuid
+      end
+
+      context 'when incoming blank' do
+        let(:incoming) { [] }
+        it { expect(workflow.payloads).to be_nil }
+      end
+
+      context 'when incoming present' do
+        let(:incoming) { ["Dwf::Item|#{SecureRandom.uuid}", "Dwf::Workflow|#{workflow_id}"] }
+        it do
+          expected_payload = [
+            {
+              class: item.class.name,
+              id: item.name,
+              output: 1
+            }
+          ]
+          expect(workflow.payloads).to eq expected_payload
+          expect(client).to have_received(:find_node).with(incoming.first, workflow.parent_id)
+        end
+      end
+    end
+  end
 end
