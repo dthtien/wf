@@ -38,7 +38,7 @@ module Dwf
     def self.workflow_name?(name)
       node_name = name.include?('|') ? name.split('|').first : name
 
-      Module.const_get(node_name) < Workflow
+      Module.const_get(node_name) <= Workflow
     end
   end
 end

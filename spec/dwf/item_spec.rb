@@ -189,7 +189,7 @@ describe Dwf::Item, item: true do
   end
 
   describe '#payloads' do
-    let(:incoming) { ["A|#{SecureRandom.uuid}"] }
+    let(:incoming) { ["Dwf::Item|#{SecureRandom.uuid}", "Dwf::Workflow|#{workflow_id}"] }
     let(:client_double) { double(find_job: nil) }
     let!(:a_item) do
       described_class.new(
@@ -199,11 +199,13 @@ describe Dwf::Item, item: true do
         output_payload: 1
       )
     end
+    let!(:workflow) { Dwf::Workflow.new }
 
     before do
       allow(Dwf::Client).to receive(:new).and_return client_double
       allow(client_double)
-        .to receive(:find_job).and_return a_item
+        .to receive(:find_node)
+        .with(incoming.first, workflow_id).and_return a_item
     end
 
     it do

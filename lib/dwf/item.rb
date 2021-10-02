@@ -59,13 +59,15 @@ module Dwf
 
     def payloads
       incoming.map do |job_name|
-        job = client.find_job(workflow_id, job_name)
+        next if Utils.workflow_name?(job_name)
+
+        node = client.find_node(job_name, workflow_id)
         {
-          id: job.name,
-          class: job.klass.to_s,
-          output: job.output_payload
+          id: node.name,
+          class: node.klass.to_s,
+          output: node.output_payload
         }
-      end
+      end.compact
     end
 
     def enqueue!
