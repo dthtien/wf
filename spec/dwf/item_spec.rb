@@ -191,7 +191,8 @@ describe Dwf::Item, item: true do
 
   describe '#payloads' do
     let(:incoming) { ["Dwf::Item|#{SecureRandom.uuid}", "Dwf::Workflow|#{workflow_id}"] }
-    let(:client_double) { double(find_job: nil) }
+    let(:client_double) { double(find_job: nil, build_workflow_id: workflow_id) }
+    let(:workflow) { Dwf::Workflow.new }
     let!(:a_item) do
       described_class.new(
         workflow_id: SecureRandom.uuid,
@@ -206,6 +207,9 @@ describe Dwf::Item, item: true do
       allow(client_double)
         .to receive(:find_node)
         .with(incoming.first, workflow_id).and_return a_item
+      allow(client_double)
+        .to receive(:find_node)
+        .with(incoming.last, workflow_id).and_return workflow
     end
 
     it do
@@ -214,9 +218,14 @@ describe Dwf::Item, item: true do
           class: a_item.class.name,
           id: a_item.name,
           output: 1
+        },
+        {
+          class: workflow.class.name,
+          id: workflow.name,
+          output: []
         }
       ]
-      expect(item.payloads).to eq expected_payload
+      expect(item.payloads).to match_array expected_payload
     end
   end
 
@@ -233,6 +242,18 @@ describe Dwf::Item, item: true do
     it do
       expect(callback_double).to have_received(:start).with(item)
       expect(item.enqueued_at).not_to be_nil
+    end
+  end
+
+  describe '#leaf?' do
+    context 'when item has outgoing item' do
+      let(:outgoing) { ["Dwf::Item|#{SecureRandom.uuid}"] }
+      it { expect(item.leaf?).to be_falsy }
+    end
+
+    context 'when item does not have outgoing item' do
+      let(:outgoing) { [] }
+      it { expect(item.leaf?).to be_truthy }
     end
   end
 end

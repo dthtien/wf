@@ -5,6 +5,10 @@ module Dwf
         incoming.empty?
       end
 
+      def leaf?
+        outgoing.empty?
+      end
+
       def ready_to_start?
         !running? && !enqueued? && !finished? && !failed? && parents_succeeded?
       end

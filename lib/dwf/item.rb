@@ -141,7 +141,7 @@ module Dwf
         workflow_id: workflow_id,
         callback_type: callback_type,
         output_payload: output_payload,
-        payloads: payloads
+        payloads: @payloads
       }
     end
 
@@ -183,8 +183,6 @@ module Dwf
 
     def build_payloads
       data = incoming.map do |job_name|
-        next if Utils.workflow_name?(job_name)
-
         node = client.find_node(job_name, workflow_id)
         next if node.output_payload.nil?
 

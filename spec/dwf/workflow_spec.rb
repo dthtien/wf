@@ -282,4 +282,51 @@ describe Dwf::Workflow, workflow: true do
       end
     end
   end
+
+  describe '#left?' do
+    let(:workflow) { described_class.new }
+    before { workflow.outgoing = outgoing }
+
+    context 'when item has outgoing item' do
+      let(:outgoing) { ["Dwf::Item|#{SecureRandom.uuid}"] }
+      it { expect(workflow.leaf?).to be_falsy }
+    end
+
+    context 'when item does not have outgoing item' do
+      let(:outgoing) { [] }
+      it { expect(workflow.leaf?).to be_truthy }
+    end
+  end
+
+  describe '#leaf_nodes' do
+    let!(:workflow) { described_class.new }
+    before do
+      workflow.run AItem
+      workflow.run BItem, after: AItem
+      workflow.run SWorkflow, after: BItem
+      workflow.run CItem, after: SWorkflow
+
+      workflow.send(:setup)
+    end
+
+    specify do
+      expect(workflow.leaf_nodes.count).to eq 1
+      expect(workflow.leaf_nodes.first).to be_kind_of CItem
+    end
+  end
+
+  describe '#output_payloads' do
+    let!(:workflow) { described_class.new }
+    before do
+      allow_any_instance_of(CItem).to receive(:output_payload).and_return 1
+      workflow.run AItem
+      workflow.run BItem, after: AItem
+      workflow.run SWorkflow, after: BItem
+      workflow.run CItem, after: SWorkflow
+
+      workflow.send(:setup)
+    end
+
+    it { expect(workflow.output_payload).to eq [1] }
+  end
 end

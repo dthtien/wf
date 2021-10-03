@@ -173,6 +173,19 @@ module Dwf
       @stopped = false
     end
 
+    def leaf_nodes
+      jobs.select(&:leaf?)
+    end
+
+    def output_payload
+      leaf_nodes.map do |node|
+        data = node.output_payload
+        next if data.nil?
+
+        data
+      end.compact
+    end
+
     private
 
     def build_node(klass, options)
