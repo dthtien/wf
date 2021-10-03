@@ -74,6 +74,10 @@ module Dwf
       @payloads ||= build_payloads
     end
 
+    def start_initial!
+      cb_build_in? ? start! : Callback.new.start(self)
+    end
+
     alias persist_and_perform_async! start!
 
     def reload

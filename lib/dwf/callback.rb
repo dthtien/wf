@@ -73,15 +73,16 @@ module Dwf
       client.release_lock(workflow_id, job_name)
     end
 
-    def start_with_batch(job)
+    def start_with_batch(node)
       batch = Sidekiq::Batch.new
+      workflow_id = node.is_a?(Dwf::Workflow) ? node.parent_id : node.workflow_id
       batch.on(
         :success,
         'Dwf::Callback#process_next_step',
-        names: [job.name],
-        workflow_id: job.workflow_id
+        names: [node.name],
+        workflow_id: workflow_id
       )
-      batch.jobs { job.perform_async }
+      batch.jobs { node.persist_and_perform_async! }
     end
 
     def client
