@@ -1,4 +1,4 @@
-# DSL playground
+# DWF
 Distributed workflow runner following [Gush](https://github.com/chaps-io/gush) interface using [Sidekiq](https://github.com/mperham/sidekiq) and [Redis](https://redis.io/). This project is for researching DSL purpose
 
 # Installation
