@@ -6,20 +6,43 @@
 ```ruby
 gem 'dwf', '~> 0.1.10'
 ```
-## 2. Execute flow
+## 2. Execute flow example
 ### Declare jobs
 
 ```ruby
 require 'dwf'
 
-class A < Dwf::Item
+class FirstItem < Dwf::Item
   def perform
-    puts "#{self.class.name} Working"
-    sleep 2
-    puts params
-    puts "#{self.class.name} Finished"
+    puts "#{self.class.name}: running"
+    puts "#{self.class.name}: finish"
   end
 end
+
+class SecondItem < Dwf::Item
+  def perform
+    puts "#{self.class.name}: running"
+    output('Send to ThirdItem')
+    puts "#{self.class.name} finish"
+  end
+end
+
+class ThirdItem < Dwf::Item
+  def perform
+    puts "#{self.class.name}: running"
+    puts "#{self.class.name}: finish"
+  end
+end
+
+class FourthItem < Dwf::Item
+  def perform
+    puts "#{self.class.name}: running"
+    puts "payloads from incoming: #{payloads.inspect}"
+    puts "#{self.class.name}: finish"
+  end
+end
+
+FifthItem = Class.new(FirstItem)
 ```
 
 ### Declare flow
@@ -27,21 +50,23 @@ end
 require 'dwf'
 
 class TestWf < Dwf::Workflow
-  def configure(arguments)
-    run A
-    run B, after: A, params: arguments
-    run C, after: A
-    run E, after: [B, C], params: 'E say hello'
-    run D, after: [E], params: 'D say hello'
-    run F, params: 'F say hello'
+  def configure
+    run FirstItem
+    run SecondItem, after: FirstItem
+    run ThirdItem, after: FirstItem
+    run FourthItem, after: [ThirdItem, SecondItem]
+    run FifthItem, after: FourthItem
   end
 end
 ```
-
+### Start background worker process
+```
+bundle exec sidekiq -q dwf
+```
 
 ### Execute flow
 ```ruby
-wf = TestWf.create(arguments)
+wf = TestWf.create
 wf.callback_type = Dwf::Workflow::SK_BATCH
 wf.start!
 ```
@@ -55,21 +80,16 @@ By default `dwf` will use `Dwf::Workflow::BUILD_IN` callback.
 
 ### Output
 ```
-A Working
-F Working
-A Finished
-F say hello
-F Finished
-C Working
-B Working
-C Finished
-B Finished
-E Working
-E say hello
-E Finished
-D Working
-D say hello
-D Finished
+FirstItem: running
+FirstItem: finish
+SecondItem: running
+SecondItem finish
+ThirdItem: running
+ThirdItem: finish
+FourthItem: running
+FourthItem: finish
+FifthItem: running
+FifthItem: finish
 ```
 
 # Config redis and default queue
@@ -84,8 +104,8 @@ Dwf.config do |config|
   config.namespace = 'dwf'
 end
 ```
-
-# Pinelining
+# Advanced features
+## Pipelining
 You can pass jobs result to next nodes
 
 ```ruby
@@ -118,6 +138,70 @@ end
   }
 ]
 ```
+## Subworkflow - Only support sidekiq pro
+There might be a case when you want to reuse a workflow in another workflow
+
+As an example, let's write a workflow which contain another workflow, expected that the SubWorkflow workflow execute after `SecondItem` and the `ThirdItem` execute after `SubWorkflow`
+
+```ruby
+gem 'dwf', '~> 0.1.11'
+```
+
+### Setup
+```ruby
+class FirstItem < Dwf::Item
+  def perform
+    puts "Main flow: #{self.class.name} running"
+    puts "Main flow: #{self.class.name} finish"
+  end
+end
+
+SecondItem = Class.new(FirstItem)
+ThirtItem = Class.new(FirstItem)
+
+class FirstSubItem < Dwf::Item
+  def perform
+    puts "Sub flow: #{self.class.name} running"
+    puts "Sub flow: #{self.class.name} finish"
+  end
+end
+
+SecondSubItem = Class.new(FirstSubItem)
+
+class SubWorkflow < Dwf::Workflow
+  def configure
+    run FirstSubItem
+    run SecondSubItem, after: FirstSubItem
+  end
+end
+
+
+class TestWf < Dwf::Workflow
+  def configure
+    run FirstItem
+    run SecondItem, after: FirstItem
+    run SubWorkflow, after: SecondItem
+    run ThirtItem, after: SubWorkflow
+  end
+end
+
+wf = TestWf.create
+wf.start!
+```
+
+### Result
+```
+Main flow: FirstItem running
+Main flow: FirstItem finish
+Main flow: SecondItem running
+Main flow: SecondItem finish
+Sub flow: FirstSubItem running
+Sub flow: FirstSubItem finish
+Sub flow: SecondSubItem running
+Sub flow: SecondSubItem finish
+Main flow: ThirtItem running
+Main flow: ThirtItem finish
+```
 
 # Todo
 - [x] Make it work
@@ -125,8 +209,9 @@ end
 - [x] Support with build-in callback
 - [x] Add github workflow
 - [x] Redis configurable
-- [x] Pinelining
+- [x] Pipelining
 - [X] Test
+- [ ] WIP - subworkflow
 - [ ] Support [Resque](https://github.com/resque/resque)
 - [ ] Key value store plugable
   - [ ] research https://github.com/moneta-rb/moneta

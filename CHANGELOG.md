@@ -1,5 +1,72 @@
 # Changelog
 All notable changes to this project will be documented in this file.
+## 0.1.11
+### Added
+#### Subworkflow - Only support sidekiq pro
+There might be a case when you want to reuse a workflow in another workflow
+
+As an example, let's write a workflow which contain another workflow, expected that the SubWorkflow workflow execute after `SecondItem` and the `ThirdItem` execute after `SubWorkflow`
+
+```ruby
+gem 'dwf', '~> 0.1.11'
+```
+
+### Setup
+```ruby
+class FirstItem < Dwf::Item
+  def perform
+    puts "Main flow: #{self.class.name} running"
+    puts "Main flow: #{self.class.name} finish"
+  end
+end
+
+SecondItem = Class.new(FirstItem)
+ThirtItem = Class.new(FirstItem)
+
+class FirstSubItem < Dwf::Item
+  def perform
+    puts "Sub flow: #{self.class.name} running"
+    puts "Sub flow: #{self.class.name} finish"
+  end
+end
+
+SecondSubItem = Class.new(FirstSubItem)
+
+class SubWorkflow < Dwf::Workflow
+  def configure
+    run FirstSubItem
+    run SecondSubItem, after: FirstSubItem
+  end
+end
+
+
+class TestWf < Dwf::Workflow
+  def configure
+    run FirstItem
+    run SecondItem, after: FirstItem
+    run SubWorkflow, after: SecondItem
+    run ThirtItem, after: SubWorkflow
+  end
+end
+
+wf = TestWf.create
+wf.start!
+```
+
+### Result
+```
+Main flow: FirstItem running
+Main flow: FirstItem finish
+Main flow: SecondItem running
+Main flow: SecondItem finish
+Sub flow: FirstSubItem running
+Sub flow: FirstSubItem finish
+Sub flow: SecondSubItem running
+Sub flow: SecondSubItem finish
+Main flow: ThirtItem running
+Main flow: ThirtItem finish
+```
+
 ## 0.1.10
 ### Added
 - Allow to use argument within workflow and update the defining callback way
