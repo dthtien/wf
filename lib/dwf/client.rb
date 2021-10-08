@@ -22,14 +22,41 @@ module Dwf
       Dwf::Item.from_hash(Dwf::Utils.symbolize_keys(data))
     end
 
+    def find_node(name, workflow_id)
+      if Utils.workflow_name?(name)
+        if name.include?('|')
+          _, id = name.split('|')
+        else
+          id = workflow_id(name, workflow_id)
+        end
+        find_workflow(id)
+      else
+        find_job(workflow_id, name)
+      end
+    end
+
     def find_workflow(id)
-      data = redis.get("dwf.workflows.#{id}")
+      key = redis.keys("dwf.workflows.#{id}*").first
+      data = redis.get(key)
       raise WorkflowNotFound, "Workflow with given id doesn't exist" if data.nil?
 
       hash = JSON.parse(data)
       hash = Dwf::Utils.symbolize_keys(hash)
       nodes = parse_nodes(id)
       workflow_from_hash(hash, nodes)
+    end
+
+    def find_sub_workflow(name, parent_id)
+      find_workflow(workflow_id(name, parent_id))
+    end
+
+    def sub_workflows(id)
+      keys = redis.keys("dwf.workflows.*.*.#{id}")
+      keys.map do |key|
+        id = key.split('.')[2]
+
+        find_workflow(id)
+      end
     end
 
     def persist_job(job)
@@ -51,7 +78,10 @@ module Dwf
     end
 
     def persist_workflow(workflow)
-      redis.set("dwf.workflows.#{workflow.id}", workflow.as_json)
+      key = [
+        'dwf', 'workflows', workflow.id, workflow.class.name, workflow.parent_id
+      ].compact.join('.')
+      redis.set(key, workflow.as_json)
     end
 
     def build_job_id(workflow_id, job_klass)
@@ -96,6 +126,13 @@ module Dwf
 
     private
 
+    def workflow_id(name, parent_id)
+      key = redis.keys("dwf.workflows.*.#{name}.#{parent_id}").first
+      return if key.nil?
+
+      key.split('.')[2]
+    end
+
     def find_job_by_klass_and_id(workflow_id, job_name)
       job_klass, job_id = job_name.split('|')
 
@@ -114,22 +151,26 @@ module Dwf
     def parse_nodes(id)
       keys = redis.scan_each(match: "dwf.jobs.#{id}.*")
 
-      keys.map do |key|
+      items = keys.map do |key|
         redis.hvals(key).map do |json|
-          Dwf::Utils.symbolize_keys JSON.parse(json)
+          node = Dwf::Utils.symbolize_keys JSON.parse(json)
+          Dwf::Item.from_hash(node)
         end
       end.flatten
+      workflows = sub_workflows(id)
+      items + workflows
     end
 
-    def workflow_from_hash(hash, nodes = [])
+    def workflow_from_hash(hash, jobs = [])
       flow = Module.const_get(hash[:klass]).new(*hash[:arguments])
       flow.jobs = []
+      flow.outgoing = hash.fetch(:outgoing, [])
+      flow.parent_id = hash[:parent_id]
+      flow.incoming = hash.fetch(:incoming, [])
       flow.stopped = hash.fetch(:stopped, false)
+      flow.callback_type = hash.fetch(:callback_type, Workflow::BUILD_IN)
       flow.id = hash[:id]
-      flow.jobs = nodes.map do |node|
-        Dwf::Item.from_hash(node)
-      end
-
+      flow.jobs = jobs
       flow
     end
 

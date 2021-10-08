@@ -2,16 +2,20 @@
 
 require_relative 'client'
 require_relative 'worker'
+require_relative 'concerns/checkable'
 require_relative 'callback'
 
 module Dwf
   class Workflow
+    include Concerns::Checkable
+
     CALLBACK_TYPES = [
       BUILD_IN = 'build-in',
       SK_BATCH = 'sk-batch'
     ].freeze
-    attr_accessor :jobs, :callback_type, :stopped, :id
-    attr_reader :dependencies, :started_at, :finished_at, :persisted, :arguments
+    attr_accessor :jobs, :stopped, :id, :incoming, :outgoing, :parent_id
+    attr_reader :dependencies, :started_at, :finished_at, :persisted, :arguments, :klass,
+                :callback_type
 
     class << self
       def create(*args)
@@ -31,8 +35,12 @@ module Dwf
       @jobs = []
       @persisted = false
       @stopped = false
-      @arguments = args
+      @arguments = *args
+      @parent_id = nil
+      @klass = self.class
       @callback_type = BUILD_IN
+      @incoming = []
+      @outgoing = []
 
       setup
     end
@@ -44,15 +52,41 @@ module Dwf
       true
     end
 
+    def name
+      "#{self.class.name}|#{id}"
+    end
+
+    def sub_workflow?
+      !parent_id.nil?
+    end
+
+    def callback_type=(type = BUILD_IN)
+      @callback_type = type
+      jobs.each { |job| job.callback_type = type }
+    end
+
     alias save persist!
 
     def start!
+      raise UnsupportCallback, 'Sub workflow only works with Sidekiq batch callback' if invalid_callback?
+
       mark_as_started
       persist!
       initial_jobs.each do |job|
-        cb_build_in? ? job.persist_and_perform_async! : Dwf::Callback.new.start(job)
+        job.payloads = payloads if sub_workflow?
+        job.start_initial!
       end
     end
+
+    def payloads
+      @payloads ||= build_payloads
+    end
+
+    def start_initial!
+      cb_build_in? ? start! : Callback.new.start(self)
+    end
+
+    alias persist_and_perform_async! start!
 
     def reload
       flow = self.class.find(id)
@@ -73,14 +107,7 @@ module Dwf
     def configure(*arguments); end
 
     def run(klass, options = {})
-      node = klass.new(
-        workflow_id: id,
-        id: client.build_job_id(id, klass.to_s),
-        params: options.fetch(:params, {}),
-        queue: options[:queue],
-        callback_type: callback_type
-      )
-
+      node = build_node(klass, options)
       jobs << node
 
       build_dependencies_structure(node, options)
@@ -112,7 +139,10 @@ module Dwf
         stopped: stopped,
         started_at: started_at,
         finished_at: finished_at,
-        callback_type: callback_type
+        callback_type: callback_type,
+        incoming: incoming,
+        outgoing: outgoing,
+        parent_id: parent_id
       }
     end
 
@@ -124,13 +154,7 @@ module Dwf
       jobs.all?(&:finished?)
     end
 
-    def started?
-      !!started_at
-    end
-
-    def running?
-      started? && !finished?
-    end
+    alias enqueued? started?
 
     def failed?
       jobs.any?(&:failed?)
@@ -138,6 +162,10 @@ module Dwf
 
     def stopped?
       stopped
+    end
+
+    def parents_succeeded?
+      incoming.all? { |name| client.find_node(name, parent_id).succeeded? }
     end
 
     def status
@@ -157,7 +185,38 @@ module Dwf
       @stopped = false
     end
 
+    def leaf_nodes
+      jobs.select(&:leaf?)
+    end
+
+    def output_payload
+      leaf_nodes.map do |node|
+        data = node.output_payload
+        next if data.nil?
+
+        data
+      end.compact
+    end
+
     private
+
+    def build_node(klass, options)
+      if klass < Dwf::Workflow
+        node = options[:params].nil? ? klass.new : klass.new(options[:params])
+        node.parent_id = id
+        node.callback_type = SK_BATCH
+        node.save
+        node
+      else
+        klass.new(
+          workflow_id: id,
+          id: client.build_job_id(id, klass.to_s),
+          params: options.fetch(:params, {}),
+          queue: options[:queue],
+          callback_type: callback_type
+        )
+      end
+    end
 
     def initial_jobs
       jobs.select(&:no_dependencies?)
@@ -168,14 +227,50 @@ module Dwf
       resolve_dependencies
     end
 
+    def find_node(node_name)
+      if Utils.workflow_name?(node_name)
+        find_subworkflow(node_name)
+      else
+        find_job(node_name)
+      end
+    end
+
+    def find_subworkflow(node_name)
+      fname, = node_name.split('|')
+      jobs.find { |j| j.klass.name == fname }
+    end
+
     def resolve_dependencies
       @dependencies.each do |dependency|
-        from = find_job(dependency[:from])
-        to   = find_job(dependency[:to])
+        from = find_node(dependency[:from])
+        to   = find_node(dependency[:to])
 
-        to.incoming << dependency[:from]
-        from.outgoing << dependency[:to]
+        to.incoming << from.name
+        from.outgoing << to.name
       end
+    end
+
+    def invalid_callback?
+      cb_build_in? && jobs.any? { |job| job.class < Workflow }
+    end
+
+    def build_payloads
+      return unless sub_workflow?
+
+      data = incoming.map do |job_name|
+        next if Utils.workflow_name?(job_name)
+
+        node = client.find_node(job_name, parent_id)
+        next if node.output_payload.nil?
+
+        {
+          id: node.name,
+          class: node.klass.to_s,
+          output: node.output_payload
+        }
+      end.compact
+
+      data.empty? ? nil : data
     end
 
     def build_dependencies_structure(node, options)

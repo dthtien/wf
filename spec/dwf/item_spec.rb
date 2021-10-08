@@ -20,7 +20,8 @@ describe Dwf::Item, item: true do
       klass: 'Dwf::Item',
       started_at: started_at,
       finished_at: finished_at,
-      callback_type: Dwf::Workflow::BUILD_IN
+      callback_type: Dwf::Workflow::BUILD_IN,
+      payloads: nil
     }
   end
   let!(:item) { described_class.new(options) }
@@ -89,7 +90,7 @@ describe Dwf::Item, item: true do
     before do
       allow(Dwf::Client).to receive(:new).and_return client_double
       allow(client_double)
-        .to receive(:find_job).and_return a_item
+        .to receive(:find_node).and_return a_item
     end
 
     context 'parent jobs already finished' do
@@ -98,8 +99,8 @@ describe Dwf::Item, item: true do
       it do
         expect(item.parents_succeeded?).to be_truthy
         expect(client_double)
-          .to have_received(:find_job)
-          .with(workflow_id, incoming.first)
+          .to have_received(:find_node)
+          .with(incoming.first, workflow_id)
       end
     end
 
@@ -109,8 +110,8 @@ describe Dwf::Item, item: true do
       it do
         expect(item.parents_succeeded?).to be_falsy
         expect(client_double)
-          .to have_received(:find_job)
-          .with(workflow_id, incoming.first)
+          .to have_received(:find_node)
+          .with(incoming.first, workflow_id)
       end
     end
   end
@@ -189,8 +190,9 @@ describe Dwf::Item, item: true do
   end
 
   describe '#payloads' do
-    let(:incoming) { ["A|#{SecureRandom.uuid}"] }
-    let(:client_double) { double(find_job: nil) }
+    let(:incoming) { ["Dwf::Item|#{SecureRandom.uuid}", "Dwf::Workflow|#{workflow_id}"] }
+    let(:client_double) { double(find_job: nil, build_workflow_id: workflow_id) }
+    let(:workflow) { Dwf::Workflow.new }
     let!(:a_item) do
       described_class.new(
         workflow_id: SecureRandom.uuid,
@@ -203,7 +205,11 @@ describe Dwf::Item, item: true do
     before do
       allow(Dwf::Client).to receive(:new).and_return client_double
       allow(client_double)
-        .to receive(:find_job).and_return a_item
+        .to receive(:find_node)
+        .with(incoming.first, workflow_id).and_return a_item
+      allow(client_double)
+        .to receive(:find_node)
+        .with(incoming.last, workflow_id).and_return workflow
     end
 
     it do
@@ -212,9 +218,42 @@ describe Dwf::Item, item: true do
           class: a_item.class.name,
           id: a_item.name,
           output: 1
+        },
+        {
+          class: workflow.class.name,
+          id: workflow.name,
+          output: []
         }
       ]
-      expect(item.payloads).to eq expected_payload
+      expect(item.payloads).to match_array expected_payload
+    end
+  end
+
+  describe '#start_batch!' do
+    let(:callback_double) { double(start: nil) }
+    let(:client_double) { double(persist_job: nil) }
+
+    before do
+      allow(Dwf::Client).to receive(:new).and_return client_double
+      allow(Dwf::Callback).to receive(:new).and_return callback_double
+      item.start_batch!
+    end
+
+    it do
+      expect(callback_double).to have_received(:start).with(item)
+      expect(item.enqueued_at).not_to be_nil
+    end
+  end
+
+  describe '#leaf?' do
+    context 'when item has outgoing item' do
+      let(:outgoing) { ["Dwf::Item|#{SecureRandom.uuid}"] }
+      it { expect(item.leaf?).to be_falsy }
+    end
+
+    context 'when item does not have outgoing item' do
+      let(:outgoing) { [] }
+      it { expect(item.leaf?).to be_truthy }
     end
   end
 end

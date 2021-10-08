@@ -9,8 +9,8 @@ module Dwf
       previous_job_names = options['names']
       workflow_id = options['workflow_id']
       processing_job_names = previous_job_names.map do |job_name|
-        job = client.find_job(workflow_id, job_name)
-        job.outgoing
+        node = client.find_node(job_name, workflow_id)
+        node.outgoing
       end.flatten.uniq
       return if processing_job_names.empty?
 
@@ -19,7 +19,7 @@ module Dwf
     end
 
     def start(job)
-      job.outgoing.any? ? start_with_batch(job) : job.perform_async
+      job.outgoing.any? ? start_with_batch(job) : job.persist_and_perform_async!
     end
 
     private
@@ -40,11 +40,13 @@ module Dwf
       batch.on(
         :success,
         'Dwf::Callback#process_next_step',
-        names: jobs.map(&:klass),
+        names: jobs.map(&:name),
         workflow_id: workflow_id
       )
       batch.jobs do
-        jobs.each { |job| job.persist_and_perform_async! if job.ready_to_start? }
+        jobs.each do |job|
+          job.persist_and_perform_async! if job.ready_to_start?
+        end
       end
     end
 
@@ -61,7 +63,7 @@ module Dwf
 
     def fetch_jobs(processing_job_names, workflow_id)
       processing_job_names.map do |job_name|
-        client.find_job(workflow_id, job_name)
+        client.find_node(job_name, workflow_id)
       end.compact
     end
 
@@ -71,15 +73,16 @@ module Dwf
       client.release_lock(workflow_id, job_name)
     end
 
-    def start_with_batch(job)
+    def start_with_batch(node)
       batch = Sidekiq::Batch.new
+      workflow_id = node.is_a?(Dwf::Workflow) ? node.parent_id : node.workflow_id
       batch.on(
         :success,
         'Dwf::Callback#process_next_step',
-        names: [job.name],
-        workflow_id: job.workflow_id
+        names: [node.name],
+        workflow_id: workflow_id
       )
-      batch.jobs { job.perform_async }
+      batch.jobs { node.persist_and_perform_async! }
     end
 
     def client

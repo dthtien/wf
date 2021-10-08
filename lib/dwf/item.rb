@@ -1,12 +1,16 @@
 # frozen_string_literal: true
 
 require_relative 'client'
+require_relative 'concerns/checkable'
 
 module Dwf
   class Item
+    include Concerns::Checkable
+
     attr_reader :workflow_id, :id, :params, :queue, :klass, :started_at,
-      :enqueued_at, :finished_at, :failed_at, :callback_type, :output_payload
-    attr_accessor :incoming, :outgoing
+                :enqueued_at, :finished_at, :failed_at, :output_payload
+    attr_writer :payloads
+    attr_accessor :incoming, :outgoing, :callback_type
 
     def initialize(options = {})
       assign_attributes(options)
@@ -16,9 +20,17 @@ module Dwf
       Module.const_get(hash[:klass]).new(hash)
     end
 
+    def start_initial!
+      cb_build_in? ? persist_and_perform_async! : start_batch!
+    end
+
+    def start_batch!
+      enqueue_and_persist!
+      Dwf::Callback.new.start(self)
+    end
+
     def persist_and_perform_async!
-      enqueue!
-      persist!
+      enqueue_and_persist!
       perform_async
     end
 
@@ -35,7 +47,7 @@ module Dwf
 
     def perform_async
       Dwf::Worker.set(queue: queue || client.config.namespace)
-                 .perform_async(workflow_id, name)
+        .perform_async(workflow_id, name)
     end
 
     def name
@@ -51,20 +63,11 @@ module Dwf
     end
 
     def parents_succeeded?
-      incoming.all? do |name|
-        client.find_job(workflow_id, name).succeeded?
-      end
+      incoming.all? { |name| client.find_node(name, workflow_id).succeeded? }
     end
 
     def payloads
-      incoming.map do |job_name|
-        job = client.find_job(workflow_id, job_name)
-        {
-          id: job.name,
-          class: job.klass.to_s,
-          output: job.output_payload
-        }
-      end
+      @payloads ||= build_payloads
     end
 
     def enqueue!
@@ -109,22 +112,6 @@ module Dwf
       !failed_at.nil?
     end
 
-    def succeeded?
-      finished? && !failed?
-    end
-
-    def started?
-      !started_at.nil?
-    end
-
-    def running?
-      started? && !finished?
-    end
-
-    def ready_to_start?
-      !running? && !enqueued? && !finished? && !failed? && parents_succeeded?
-    end
-
     def current_timestamp
       Time.now.to_i
     end
@@ -152,7 +139,8 @@ module Dwf
         params: params,
         workflow_id: workflow_id,
         callback_type: callback_type,
-        output_payload: output_payload
+        output_payload: output_payload,
+        payloads: @payloads
       }
     end
 
@@ -165,6 +153,11 @@ module Dwf
     end
 
     private
+
+    def enqueue_and_persist!
+      enqueue!
+      persist!
+    end
 
     def client
       @client ||= Dwf::Client.new
@@ -184,6 +177,21 @@ module Dwf
       @started_at = options[:started_at]
       @callback_type = options[:callback_type]
       @output_payload = options[:output_payload]
+      @payloads = options[:payloads]
+    end
+
+    def build_payloads
+      data = incoming.map do |job_name|
+        node = client.find_node(job_name, workflow_id)
+        next if node.output_payload.nil?
+
+        {
+          id: node.name,
+          class: node.klass.to_s,
+          output: node.output_payload
+        }
+      end.compact
+      data.empty? ? nil : data
     end
   end
 end
