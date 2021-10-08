@@ -1,5 +1,4 @@
 require_relative 'errors'
-require 'byebug'
 
 module Dwf
   class Client

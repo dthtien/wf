@@ -2,7 +2,6 @@
 
 require_relative 'client'
 require_relative 'concerns/checkable'
-require 'byebug'
 
 module Dwf
   class Item
