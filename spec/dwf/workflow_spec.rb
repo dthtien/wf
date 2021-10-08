@@ -168,9 +168,9 @@ describe Dwf::Workflow, workflow: true do
     let!(:workflow) { described_class.new }
 
     it do
-      expect(workflow.callback_type).to eq described_class::SK_BATCH
-      workflow.callback_type = described_class::BUILD_IN
       expect(workflow.callback_type).to eq described_class::BUILD_IN
+      workflow.callback_type = described_class::SK_BATCH
+      expect(workflow.callback_type).to eq described_class::SK_BATCH
     end
   end
 
