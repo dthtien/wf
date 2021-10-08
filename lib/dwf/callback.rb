@@ -19,7 +19,7 @@ module Dwf
     end
 
     def start(job)
-      job.outgoing.any? ? start_with_batch(job) : job.perform_async
+      job.outgoing.any? ? start_with_batch(job) : job.persist_and_perform_async!
     end
 
     private

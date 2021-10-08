@@ -169,6 +169,7 @@ module Dwf
       flow.parent_id = hash[:parent_id]
       flow.incoming = hash.fetch(:incoming, [])
       flow.stopped = hash.fetch(:stopped, false)
+      flow.callback_type = hash.fetch(:callback_type, Workflow::BUILD_IN)
       flow.id = hash[:id]
       flow.jobs = jobs
       flow

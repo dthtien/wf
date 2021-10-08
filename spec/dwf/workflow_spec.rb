@@ -329,4 +329,21 @@ describe Dwf::Workflow, workflow: true do
 
     it { expect(workflow.output_payload).to eq [1] }
   end
+
+  describe '#callback_type=' do
+    let!(:workflow) { described_class.new }
+    before do
+      workflow.run AItem
+      workflow.run BItem, after: AItem
+
+      workflow.send(:setup)
+      workflow.callback_type = described_class::SK_BATCH
+    end
+
+    specify do
+      expect(workflow.callback_type).to eq described_class::SK_BATCH
+      job_callback_types = workflow.jobs.map(&:callback_type).uniq
+      expect(job_callback_types).to eq [described_class::SK_BATCH]
+    end
+  end
 end

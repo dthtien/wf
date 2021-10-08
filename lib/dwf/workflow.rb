@@ -13,8 +13,9 @@ module Dwf
       BUILD_IN = 'build-in',
       SK_BATCH = 'sk-batch'
     ].freeze
-    attr_accessor :jobs, :callback_type, :stopped, :id, :incoming, :outgoing, :parent_id
-    attr_reader :dependencies, :started_at, :finished_at, :persisted, :arguments, :klass
+    attr_accessor :jobs, :stopped, :id, :incoming, :outgoing, :parent_id
+    attr_reader :dependencies, :started_at, :finished_at, :persisted, :arguments, :klass,
+                :callback_type
 
     class << self
       def create(*args)
@@ -34,10 +35,10 @@ module Dwf
       @jobs = []
       @persisted = false
       @stopped = false
-      @arguments = args
+      @arguments = *args
       @parent_id = nil
       @klass = self.class
-      @callback_type = SK_BATCH
+      @callback_type = BUILD_IN
       @incoming = []
       @outgoing = []
 
@@ -59,9 +60,16 @@ module Dwf
       !parent_id.nil?
     end
 
+    def callback_type=(type = BUILD_IN)
+      @callback_type = type
+      jobs.each { |job| job.callback_type = type }
+    end
+
     alias save persist!
 
     def start!
+      raise UnsupportCallback, 'Sub workflow only works with Sidekiq batch callback' if invalid_callback?
+
       mark_as_started
       persist!
       initial_jobs.each do |job|
@@ -196,7 +204,7 @@ module Dwf
       if klass < Dwf::Workflow
         node = options[:params].nil? ? klass.new : klass.new(options[:params])
         node.parent_id = id
-        node.callback_type = callback_type
+        node.callback_type = SK_BATCH
         node.save
         node
       else
@@ -240,6 +248,10 @@ module Dwf
         to.incoming << from.name
         from.outgoing << to.name
       end
+    end
+
+    def invalid_callback?
+      cb_build_in? && jobs.any? { |job| job.class < Workflow }
     end
 
     def build_payloads

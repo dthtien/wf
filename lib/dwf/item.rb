@@ -9,9 +9,9 @@ module Dwf
     include Concerns::Checkable
 
     attr_reader :workflow_id, :id, :params, :queue, :klass, :started_at,
-      :enqueued_at, :finished_at, :failed_at, :callback_type, :output_payload
+                :enqueued_at, :finished_at, :failed_at, :output_payload
     attr_writer :payloads
-    attr_accessor :incoming, :outgoing
+    attr_accessor :incoming, :outgoing, :callback_type
 
     def initialize(options = {})
       assign_attributes(options)
