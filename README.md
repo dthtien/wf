@@ -1,5 +1,5 @@
 # DSL playground
-[Gush](https://github.com/chaps-io/gush) cloned without [ActiveJob](https://guides.rubyonrails.org/active_job_basics.html) but requried [Sidekiq](https://github.com/mperham/sidekiq). This project is for researching DSL purpose
+Distributed workflow runner following [Gush](https://github.com/chaps-io/gush) interface using [Sidekiq](https://github.com/mperham/sidekiq) and [Redis](https://redis.io/). This project is for researching DSL purpose
 
 # Installation
 ## 1. Add `dwf` to Gemfile
