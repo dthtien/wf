@@ -149,37 +149,55 @@ describe Dwf::Item, item: true do
   end
 
   describe '#enqueue_outgoing_jobs' do
-    let(:outgoing) { ["A|#{SecureRandom.uuid}"] }
     let(:client_double) do
       double(
-        find_job: nil,
+        find_node: nil,
         check_or_lock: nil,
-        release_lock: nil
+        release_lock: nil,
+        build_workflow_id: SecureRandom.uuid
       )
-    end
-    let(:a_item) do
-      described_class.new(
-        workflow_id: SecureRandom.uuid,
-        id: SecureRandom.uuid,
-        started_at: started_at
-      )
-    end
-    before do
-      allow(Dwf::Client).to receive(:new).and_return client_double
-      allow(a_item).to receive(:persist_and_perform_async!)
-      allow(client_double)
-        .to receive(:find_job).and_return a_item
-      item.enqueue_outgoing_jobs
     end
 
-    context 'outgoing jobs ready to start' do
+    context 'when item is not a leaf' do
+      let(:outgoing) { ["A|#{SecureRandom.uuid}"] }
+      let(:a_item) do
+        described_class.new(
+          workflow_id: SecureRandom.uuid,
+          id: SecureRandom.uuid,
+          started_at: started_at
+        )
+      end
+      before do
+        allow(Dwf::Client).to receive(:new).and_return client_double
+        allow(a_item).to receive(:persist_and_perform_async!)
+        allow(client_double)
+          .to receive(:find_node).and_return a_item
+        item.enqueue_outgoing_jobs
+      end
+
+      context 'outgoing jobs ready to start' do
+        let(:started_at) { nil }
+        it { expect(a_item).to have_received(:persist_and_perform_async!) }
+      end
+
+      context 'outgoing jobs havent ready to start' do
+        let(:started_at) { Time.now.to_i }
+        it { expect(a_item).not_to have_received(:persist_and_perform_async!) }
+      end
+    end
+
+    context 'when item is a leaf' do
+      let(:leaf) { true }
+      let(:workflow) { Dwf::Workflow.new }
+      before do
+        allow(Dwf::Client).to receive(:new).and_return client_double
+        allow(client_double).to receive(:find_workflow).and_return workflow
+        allow(workflow).to receive(:enqueue_outgoing_jobs)
+        item.enqueue_outgoing_jobs
+      end
+
       let(:started_at) { nil }
-      it { expect(a_item).to have_received(:persist_and_perform_async!) }
-    end
-
-    context 'outgoing jobs havent ready to start' do
-      let(:started_at) { Time.now.to_i }
-      it { expect(a_item).not_to have_received(:persist_and_perform_async!) }
+      it { expect(workflow).to have_received(:enqueue_outgoing_jobs) }
     end
   end
 
