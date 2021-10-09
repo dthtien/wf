@@ -40,6 +40,10 @@ module Dwf
       callback_type == Dwf::Workflow::BUILD_IN
     end
 
+    def workflow
+      @workflow ||= client.find_workflow(workflow_id)
+    end
+
     def reload
       item = client.find_job(workflow_id, name)
       assign_attributes(item.to_hash)
@@ -117,11 +121,22 @@ module Dwf
     end
 
     def enqueue_outgoing_jobs
-      outgoing.each do |job_name|
-        client.check_or_lock(workflow_id, job_name)
-        out = client.find_job(workflow_id, job_name)
-        out.persist_and_perform_async! if out.ready_to_start?
-        client.release_lock(workflow_id, job_name)
+      if leaf?
+        return unless workflow.sub_workflow?
+
+        workflow.outgoing.each do |job_name|
+          client.check_or_lock(workflow.parent_id, job_name)
+          out = client.find_node(job_name, workflow.parent_id)
+          out.persist_and_perform_async! if out.ready_to_start?
+          client.release_lock(workflow.parent_id, job_name)
+        end
+      else
+        outgoing.each do |job_name|
+          client.check_or_lock(workflow_id, job_name)
+          out = client.find_node(job_name, workflow_id)
+          out.persist_and_perform_async! if out.ready_to_start?
+          client.release_lock(workflow_id, job_name)
+        end
       end
     end
 

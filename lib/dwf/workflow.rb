@@ -3,7 +3,7 @@
 require_relative 'client'
 require_relative 'worker'
 require_relative 'concerns/checkable'
-require_relative 'callback'
+require 'byebug'
 
 module Dwf
   class Workflow
@@ -68,7 +68,7 @@ module Dwf
     alias save persist!
 
     def start!
-      raise UnsupportCallback, 'Sub workflow only works with Sidekiq batch callback' if invalid_callback?
+      # raise UnsupportCallback, 'Sub workflow only works with Sidekiq batch callback' if invalid_callback?
 
       mark_as_started
       persist!
@@ -204,7 +204,7 @@ module Dwf
       if klass < Dwf::Workflow
         node = options[:params].nil? ? klass.new : klass.new(options[:params])
         node.parent_id = id
-        node.callback_type = SK_BATCH
+        node.callback_type = callback_type
         node.save
         node
       else
