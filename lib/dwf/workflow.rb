@@ -68,8 +68,6 @@ module Dwf
     alias save persist!
 
     def start!
-      # raise UnsupportCallback, 'Sub workflow only works with Sidekiq batch callback' if invalid_callback?
-
       mark_as_started
       persist!
       initial_jobs.each do |job|
@@ -175,6 +173,17 @@ module Dwf
       return :stopped if stopped?
 
       :running
+    end
+
+    def enqueue_outgoing_jobs
+      return unless sub_workflow?
+
+      outgoing.each do |job_name|
+        client.check_or_lock(parent_id, job_name)
+        node = client.find_node(job_name, parent_id)
+        node.persist_and_perform_async! if node.ready_to_start?
+        client.release_lock(parent_id, job_name)
+      end
     end
 
     def mark_as_persisted

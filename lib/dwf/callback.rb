@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 require_relative 'client'
-require 'sidekiq-pro'
 
 module Dwf
   class Callback
