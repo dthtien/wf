@@ -121,15 +121,13 @@ module Dwf
     end
 
     def enqueue_outgoing_jobs
-      if leaf?
-        workflow.enqueue_outgoing_jobs
-      else
-        outgoing.each do |job_name|
-          client.check_or_lock(workflow_id, job_name)
-          out = client.find_node(job_name, workflow_id)
-          out.persist_and_perform_async! if out.ready_to_start?
-          client.release_lock(workflow_id, job_name)
-        end
+      return workflow.enqueue_outgoing_jobs if leaf?
+
+      outgoing.each do |job_name|
+        client.check_or_lock(workflow_id, job_name)
+        out = client.find_node(job_name, workflow_id)
+        out.persist_and_perform_async! if out.ready_to_start?
+        client.release_lock(workflow_id, job_name)
       end
     end
 
