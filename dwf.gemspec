@@ -6,12 +6,12 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require_relative 'lib/dwf/version'
 
 Gem::Specification.new do |spec|
-  spec.name          = "dwf"
+  spec.name          = 'dwf'
   spec.version       = Dwf::VERSION
-  spec.authors       = ["dthtien"]
-  spec.email         = ["tiendt2311@gmail.com"]
+  spec.authors       = ['dthtien']
+  spec.email         = ['tiendt2311@gmail.com']
 
-  spec.summary       = 'Gush cloned without ActiveJob but requried Sidekiq. This project is for researching DSL purpose'
+  spec.summary       = 'Distributed workflow runner following Gush interface using Sidekiq and Redis'
   spec.description   = 'Workflow'
   spec.homepage      = 'https://github.com/dthtien/wf'
   spec.license       = "MIT"

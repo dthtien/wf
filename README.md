@@ -4,7 +4,7 @@ Distributed workflow runner following [Gush](https://github.com/chaps-io/gush) i
 # Installation
 ## 1. Add `dwf` to Gemfile
 ```ruby
-gem 'dwf', '~> 0.1.10'
+gem 'dwf', '~> 0.1.12'
 ```
 ## 2. Execute flow example
 ### Declare jobs
@@ -138,14 +138,10 @@ end
   }
 ]
 ```
-## Subworkflow - Only support sidekiq pro
+## Sub workflow
 There might be a case when you want to reuse a workflow in another workflow
 
 As an example, let's write a workflow which contain another workflow, expected that the SubWorkflow workflow execute after `SecondItem` and the `ThirdItem` execute after `SubWorkflow`
-
-```ruby
-gem 'dwf', '~> 0.1.11'
-```
 
 ### Setup
 ```ruby
