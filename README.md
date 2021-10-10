@@ -207,7 +207,7 @@ Main flow: ThirtItem finish
 - [x] Redis configurable
 - [x] Pipelining
 - [X] Test
-- [ ] WIP - subworkflow
+- [x] Sub workflow
 - [ ] Support [Resque](https://github.com/resque/resque)
 - [ ] Key value store plugable
   - [ ] research https://github.com/moneta-rb/moneta
