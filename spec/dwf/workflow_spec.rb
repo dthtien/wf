@@ -18,7 +18,9 @@ describe Dwf::Workflow, workflow: true do
       build_workflow_id: workflow_id,
       build_job_id: item_id,
       find_workflow: nil,
-      find_node: item
+      find_node: item,
+      check_or_lock: nil,
+      release_lock: nil
     )
   end
   before do
@@ -344,6 +346,37 @@ describe Dwf::Workflow, workflow: true do
       expect(workflow.callback_type).to eq described_class::SK_BATCH
       job_callback_types = workflow.jobs.map(&:callback_type).uniq
       expect(job_callback_types).to eq [described_class::SK_BATCH]
+    end
+  end
+
+  describe '#enqueue_outgoing_jobs' do
+    let(:outgoing) { ["A|#{SecureRandom.uuid}"] }
+    let!(:workflow) do
+      flow = described_class.new
+      flow.parent_id = SecureRandom.uuid
+      flow.outgoing = outgoing
+      flow
+    end
+    let(:item) do
+      Dwf::Item.new(
+        workflow_id: SecureRandom.uuid,
+        id: SecureRandom.uuid,
+        started_at: started_at
+      )
+    end
+    before do
+      allow(item).to receive(:persist_and_perform_async!)
+      workflow.enqueue_outgoing_jobs
+    end
+
+    context 'outgoing jobs ready to start' do
+      let(:started_at) { nil }
+      it { expect(item).to have_received(:persist_and_perform_async!) }
+    end
+
+    context 'outgoing jobs havent ready to start' do
+      let(:started_at) { Time.now.to_i }
+      it { expect(item).not_to have_received(:persist_and_perform_async!) }
     end
   end
 end
