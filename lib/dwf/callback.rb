@@ -45,6 +45,7 @@ module Dwf
       )
       batch.jobs do
         jobs.each do |job|
+          job.reload
           job.persist_and_perform_async! if job.ready_to_start?
         end
       end
@@ -67,10 +68,8 @@ module Dwf
       end.compact
     end
 
-    def with_lock(workflow_id, job_name)
-      client.check_or_lock(workflow_id, job_name)
-      yield
-      client.release_lock(workflow_id, job_name)
+    def with_lock(workflow_id, job_name, &block)
+      client.check_or_lock(workflow_id, job_name, &block)
     end
 
     def start_with_batch(node)

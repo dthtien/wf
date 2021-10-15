@@ -178,10 +178,10 @@ module Dwf
       return unless sub_workflow?
 
       outgoing.each do |job_name|
-        client.check_or_lock(parent_id, job_name)
-        node = client.find_node(job_name, parent_id)
-        node.persist_and_perform_async! if node.ready_to_start?
-        client.release_lock(parent_id, job_name)
+        client.check_or_lock(parent_id, job_name) do
+          node = client.find_node(job_name, parent_id)
+          node.persist_and_perform_async! if node.ready_to_start?
+        end
       end
     end
 

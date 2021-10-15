@@ -1,4 +1,5 @@
 require_relative 'errors'
+require 'redis-mutex'
 
 module Dwf
   class Client
@@ -63,14 +64,9 @@ module Dwf
       redis.hset("dwf.jobs.#{job.workflow_id}.#{job.klass}", job.id, job.as_json)
     end
 
-    def check_or_lock(workflow_id, job_name)
+    def check_or_lock(workflow_id, job_name, &block)
       key = "wf_enqueue_outgoing_jobs_#{workflow_id}-#{job_name}"
-
-      if key_exists?(key)
-        sleep 2
-      else
-        set(key, 'running')
-      end
+      RedisMutex.with_lock(key, sleep: 0.3, block: 2, &block)
     end
 
     def release_lock(workflow_id, job_name)
@@ -175,7 +171,9 @@ module Dwf
     end
 
     def redis
-      @redis ||= Redis.new(config.redis_opts)
+      @redis ||= Redis.new(config.redis_opts).tap do |instance|
+        RedisClassy.redis = instance
+      end
     end
   end
 end

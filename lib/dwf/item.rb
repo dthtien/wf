@@ -49,8 +49,9 @@ module Dwf
       assign_attributes(item.to_hash)
     end
 
-    def perform_async
-      Dwf::Worker.set(queue: queue || client.config.namespace)
+    def perform_async(options = {})
+      queue ||= client.config.namespace
+      Dwf::Worker.set(options.merge(queue: queue))
         .perform_async(workflow_id, name)
     end
 
@@ -124,11 +125,13 @@ module Dwf
       return workflow.enqueue_outgoing_jobs if leaf?
 
       outgoing.each do |job_name|
-        client.check_or_lock(workflow_id, job_name)
-        out = client.find_node(job_name, workflow_id)
-        out.persist_and_perform_async! if out.ready_to_start?
-        client.release_lock(workflow_id, job_name)
+        client.check_or_lock(workflow_id, job_name) do
+          out = client.find_node(job_name, workflow_id)
+          out.persist_and_perform_async! if out.ready_to_start?
+        end
       end
+    rescue RedisMutex::LockError
+      perform_async(wait: 2)
     end
 
     def to_hash
