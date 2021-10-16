@@ -1,5 +1,42 @@
 # Changelog
 All notable changes to this project will be documented in this file.
+
+## 0.1.12
+### Added
+#### Dynamic workflows
+There might be a case when you have to contruct the workflow dynamically depend on the input
+As an example, let's write a workflow which puts from 1 to 100 into the terminal parallely . Additionally after finish all job, it will puts the finshed word into the terminal
+```ruby
+class FirstMainItem < Dwf::Item
+  def perform
+    puts "#{self.class.name}: running #{params}"
+  end
+end
+
+SecondMainItem = Class.new(FirstMainItem)
+
+class TestWf < Dwf::Workflow
+  def configure
+    items = (1..100).to_a.map do |number|
+      run FirstMainItem, params: number
+    end
+    run SecondMainItem, after: items, params: "finished"
+  end
+end
+
+```
+We can achieve that because run method returns the id of the created job, which we can use for chaining dependencies.
+Now, when we create the workflow like this:
+```ruby
+wf = TestWf.create
+# wf.callback_type = Dwf::Workflow::SK_BATCH
+wf.start!
+```
+
+## 0.1.12
+### Added
+#### Subworkflow for all callback types
+same with `0.1.11`
 ## 0.1.11
 ### Added
 #### Subworkflow - Only support sidekiq pro
