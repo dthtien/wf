@@ -360,23 +360,17 @@ describe Dwf::Workflow, workflow: true do
     let(:item) do
       Dwf::Item.new(
         workflow_id: SecureRandom.uuid,
-        id: SecureRandom.uuid,
-        started_at: started_at
+        id: SecureRandom.uuid
       )
     end
     before do
-      allow(item).to receive(:persist_and_perform_async!)
       workflow.enqueue_outgoing_jobs
     end
 
-    context 'outgoing jobs ready to start' do
-      let(:started_at) { nil }
-      it { expect(item).to have_received(:persist_and_perform_async!) }
-    end
-
-    context 'outgoing jobs havent ready to start' do
-      let(:started_at) { Time.now.to_i }
-      it { expect(item).not_to have_received(:persist_and_perform_async!) }
+    it do
+      expect(client).to have_received(:check_or_lock) do |&block|
+        expect(block).to be_kind_of Proc
+      end
     end
   end
 end

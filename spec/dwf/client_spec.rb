@@ -170,24 +170,18 @@ describe Dwf::Client, client: true do
 
       before do
         allow(client).to receive(:set)
-        redis.set("wf_enqueue_outgoing_jobs_#{workflow_id}-#{job_name}", 'running')
-        client.check_or_lock(workflow_id, job_name)
-      end
-
-      it { expect(client).not_to have_received(:set) }
-    end
-
-    context 'job is not running' do
-      let(:job_name) { 'ahihi' }
-
-      before do
-        allow(redis).to receive(:set)
-        client.check_or_lock(workflow_id, job_name)
+        allow(RedisMutex).to receive(:with_lock)
+        client.check_or_lock(workflow_id, job_name) {}
       end
 
       it do
-        expect(redis).to have_received(:set)
-          .with("wf_enqueue_outgoing_jobs_#{workflow_id}-#{job_name}", 'running')
+        expect(RedisMutex)
+          .to have_received(:with_lock)
+          .with(
+            "wf_enqueue_outgoing_jobs_#{workflow_id}-#{job_name}",
+            sleep: 0.3,
+            block: 2
+          )
       end
     end
   end

@@ -50,8 +50,7 @@ module Dwf
     end
 
     def perform_async(options = {})
-      queue ||= client.config.namespace
-      Dwf::Worker.set(options.merge(queue: queue))
+      Dwf::Worker.set(options.merge(queue: queue || client.config.namespace))
         .perform_async(workflow_id, name)
     end
 
