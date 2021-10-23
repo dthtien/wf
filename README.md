@@ -238,6 +238,7 @@ wf.start!
 - [x] Pipelining
 - [X] Test
 - [x] Sub workflow
+- [ ] CLI
 - [ ] Support [Resque](https://github.com/resque/resque)
 - [ ] Key value store plugable
   - [ ] research https://github.com/moneta-rb/moneta
@@ -252,3 +253,4 @@ wf.start!
 # References
 - https://github.com/chaps-io/gush
 - https://github.com/mperham/sidekiq
+- https://redis.io/
