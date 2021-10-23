@@ -242,6 +242,13 @@ wf.start!
 - [ ] Key value store plugable
   - [ ] research https://github.com/moneta-rb/moneta
 
+# Contributing
+1. Fork it ( http://github.com/dthtien/wf/fork )
+2. Create your feature branch (git checkout -b awsome-feature)
+3. Commit your changes (git commit -am 'Add some awsome feature')
+4. Push to the branch (git push origin awsome-feature)
+5. Create new Pull Request
+
 # References
 - https://github.com/chaps-io/gush
 - https://github.com/mperham/sidekiq
