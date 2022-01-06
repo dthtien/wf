@@ -14,6 +14,7 @@ require_relative 'dwf/client'
 require_relative 'dwf/worker'
 require_relative 'dwf/callback'
 require_relative 'dwf/configuration'
+require_relative 'dwf/cli'
 
 module Dwf
   def self.configuration
